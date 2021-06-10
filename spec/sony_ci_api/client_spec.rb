@@ -109,6 +109,13 @@ RSpec.describe SonyCiApi::Client do
         expect(get_result).to eq response_body
       end
 
+      describe '#response after calling #get' do
+        it 'returns the whole response object from the most recent request' do
+          expect(get_result).to eq client.response.body
+          expect(client.response).to be_a Faraday::Response
+        end
+      end
+
       # ERROR CASES
       # TODO: add error codes and messages to exceptions for clearer messaging.
       context 'when a 404 is returned' do
@@ -148,6 +155,8 @@ RSpec.describe SonyCiApi::Client do
         }
       }
 
+      # This actually calls the method under test, but we want to do it in
+      # more than one way (see call_workspace_search elsewhere).
       let(:call_workspace_search) { client.workspace_search(workspace_id, **params) }
 
       let(:workspace_search) do
@@ -163,7 +172,8 @@ RSpec.describe SonyCiApi::Client do
           }
         ) do
           # here we call the method under test, indirectly because we have 2
-          # ways of calling it.
+          # ways of calling it. The return value becomes the value for
+          # :workspace_search.
           call_workspace_search
         end
       end
