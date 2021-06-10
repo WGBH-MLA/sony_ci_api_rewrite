@@ -148,6 +148,8 @@ RSpec.describe SonyCiApi::Client do
         }
       }
 
+      let(:call_workspace_search) { client.workspace_search(workspace_id, **params) }
+
       let(:workspace_search) do
         stub_request_and_call_block(
           :get,
@@ -160,12 +162,24 @@ RSpec.describe SonyCiApi::Client do
             status: response_status
           }
         ) do
-          client.workspace_search(workspace_id, **params)
+          # here we call the method under test, indirectly because we have 2
+          # ways of calling it.
+          call_workspace_search
         end
       end
 
       it 'returns the list of items' do
         expect(workspace_search).to eq response_body['items']
+      end
+
+      context 'with a default workspace_id' do
+        before { client.workspace_id = workspace_id }
+        # Here, we call the method without specifying a workspace ID in order
+        # to test that the default workspace_id was used.
+        let(:call_workspace_search) { client.workspace_search(**params) }
+        it 'returns the list of itmes for ' do
+          expect(workspace_search).to eq response_body['items']
+        end
       end
     end
   end

@@ -13,8 +13,14 @@ module SonyCiApi
     attr_reader :config,   # stores the config for the connection, including credentials.
                 :response  # stores the most recent response; default nil
 
+    # Often we are only working in a single workspace, so allow for a default
+    # to be set here.
+    attr_accessor :workspace_id
+
     def initialize(config={})
       @config = File.exist?(config.to_s) ? YAML.safe_load(File.read(config), symbolize_names: true) : config
+      # Set the default workspace, if present, from the config
+      @workspace_id = @config.delete('workspace_id')
     end
 
     def conn
@@ -51,7 +57,7 @@ module SonyCiApi
       end
     end
 
-    def workspace_search(workspace_id, **params)
+    def workspace_search( workspace_id = self.workspace_id, **params )
       get("/workspaces/#{workspace_id}/search", params: params)['items']
     end
 
