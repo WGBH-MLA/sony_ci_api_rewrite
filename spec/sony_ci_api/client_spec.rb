@@ -56,7 +56,7 @@ RSpec.describe SonyCiApi::Client do
             'Accept-Encoding' => 'gzip;q=1.0,deflate;q=0.6,identity;q=0.3',
             'Authorization' => "Basic #{encoded_username_and_password}",
             'Content-Type' => 'application/json',
-            'User-Agent' => 'Faraday v1.3.0'
+            'User-Agent' => "Faraday v#{Faraday::VERSION}"
           }
         },
         stub_response: {
