@@ -50,7 +50,7 @@ RSpec.describe SonyCiApi::Client do
             grant_type: 'password',
             client_id: client_id,
             client_secret: client_secret
-          },
+          }.to_json,
           headers: {
             'Accept' => '*/*',
             'Accept-Encoding' => 'gzip;q=1.0,deflate;q=0.6,identity;q=0.3',
