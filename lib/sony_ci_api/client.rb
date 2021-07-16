@@ -5,10 +5,12 @@ require 'faraday_middleware'
 require 'active_support/core_ext/string/inflections'
 require 'forwardable'
 require 'base64'
+require 'yaml'
 
 module SonyCiApi
   class Client
     BASE_URL = "https://api.cimediacloud.com".freeze
+    BASE_UPLOAD_URL = "https://io.cimediacloud.com".freeze
 
     attr_reader :config,   # stores the config for the connection, including credentials.
                 :response  # stores the most recent response; default nil
@@ -24,10 +26,24 @@ module SonyCiApi
     end
 
     def conn
-      @conn ||= Faraday.new(url: BASE_URL) do |f|
+      @conn ||= api_conn
+    end
+
+    def api_conn
+      @api_conn ||= Faraday.new(url: BASE_URL) do |f|
         f.request :json
         f.response :json
         f.response :raise_error
+      end
+    end
+
+    def upload_conn
+      @upload_conn ||= Faraday.new(url: BASE_UPLOAD_URL) do |f|
+        f.request :multipart
+        f.request :url_encoded
+        f.response :json
+        f.response :raise_error
+        f.adapter Faraday.default_adapter
       end
     end
 
@@ -39,13 +55,16 @@ module SonyCiApi
       send_request(:post, path, params: params, headers: headers)
     end
 
-    def put(path, params: {}); end           # TODO
+    def put(path, params: {}, headers: {})
+      send_request(:put, path, params: params, headers: headers)
+    end
+
     def delete(path, params: {}); end        # TODO
 
     def access_token
       @access_token ||= begin
-        conn.basic_auth config[:username], config[:password]
-        @response = conn.post(
+        api_conn.basic_auth config[:username], config[:password]
+        @response = api_conn.post(
           '/oauth2/token',
           {
             grant_type: 'password',
@@ -57,8 +76,45 @@ module SonyCiApi
       end
     end
 
+    def workspaces(**params)
+      get('/workspaces', params: params)['items']
+    end
+
     def workspace_search( workspace_id = self.workspace_id, **params )
       get("/workspaces/#{workspace_id}/search", params: params)['items']
+    end
+
+    def webhooks( workspace_id = self.workspace_id, **params)
+      get("/networks/#{workspace['network']['id']}/webhooks", params: params)['items']
+    end
+
+    def workspace_id=(wid)
+      # unset all the cached attrs that depend on workspace_id
+      @workspace, @network, @network_id = nil
+      @workspace_id = wid
+    end
+
+    def workspace
+      raise 'You must first set workspace_id' unless workspace_id
+      @workspace ||= workspaces.detect { |ws| ws['id'] == workspace_id }
+    end
+
+    def upload(filepath, content_type:)
+      with_upload_conn do
+        params = {
+          filename: Faraday::FilePart.new( filepath, content_type, nil,
+                                           'Content-Disposition' => 'form-data')
+        }
+        post('/upload', params: params)
+      end
+    end
+
+    def with_upload_conn
+      raise 'block required' unless block_given?
+      @conn = upload_conn
+      yield
+    ensure
+      @conn = api_conn
     end
 
 
@@ -67,7 +123,7 @@ module SonyCiApi
       def send_request(http_method, path, params: {}, headers: {})
         @response = nil # reset the last response explicitly in case of error.
         conn.authorization :Bearer, access_token
-        @response = conn.send(http_method, url(path), camelize_params(params), headers )
+        @response = conn.send(http_method, path, camelize_params(params), headers )
         @response.body
       rescue Faraday::ResourceNotFound, Faraday::BadRequestError => e
         # For 4xx and 5xx responses that come with a Sony Ci error code and
@@ -79,16 +135,16 @@ module SonyCiApi
 
     # Class methods
     class << self
-      def url(path, **params)
-        url_params = URI.encode_www_form(camelize_params(params))
-        full_url = File.join( [ BASE_URL, path.to_s ].reject(&:empty?) )
-        full_url = [ full_url, url_params ].reject(&:empty?).join('?')
-      end
+      # def url(path, **params)
+      #   url_params = URI.encode_www_form(camelize_params(params))
+      #   full_url = File.join( [ BASE_URL, path.to_s ].reject(&:empty?) )
+      #   full_url = [ full_url, url_params ].reject(&:empty?).join('?')
+      # end
 
       # Converts a params hash (with symbol keys that have underscores) to
       # a param hash where the keys are strings, and lower-camelcase, like the
       # Sony Ci API expects.
-      def camelize_params(**params)
+      def camelize_params(params={})
         params.transform_keys { |key| key.to_s.camelize(:lower) }
       end
     end

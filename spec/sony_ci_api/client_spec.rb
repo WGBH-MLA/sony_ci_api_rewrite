@@ -1,11 +1,19 @@
 require 'spec_helper'
 require 'webmock/rspec'
 
+# Stubs a request, calls the passed block, and then runs an expectation on
+# the stubbed request (a commonly repeated API test pattern).
+# @return the return value of the block.
 def stub_request_and_call_block(http_method, path, with: {}, stub_response: {})
   url = URI.join(SonyCiApi::Client::BASE_URL, path)
-  WebMock.stub_request(http_method, url).with(**with).to_return(**stub_response)
+  stub = WebMock.stub_request(http_method, url)
+  stub.with(**with) unless with.empty?
+  stub.to_return(**stub_response) unless stub_response.empty?
+  # Call the block and save the return val to return from this method.
   return_val = yield
-  expect(WebMock).to have_requested(http_method, url).with(**with)
+  expectation = have_requested(http_method, url)
+  expectation.with(**with) unless with.empty?
+  expect(WebMock).to expectation
   return_val
 end
 
@@ -142,6 +150,35 @@ RSpec.describe SonyCiApi::Client do
       end
     end
 
+    describe 'workspaces' do
+      # In reality, the hashes representing workspaces are much more extensive.
+      # For testing we can use a minimal and arbitrary data structure.
+      let(:expected_workspaces) { [
+          { "id" => "foo", "name" => "Foo Workspace" },
+          { "id" => "bar", "name" => "Bar Workspace" }
+      ] }
+
+      let(:actual_workspaces) {
+        stub_request_and_call_block(
+          :get,
+          "#{base_url}/workspaces",
+          stub_response: {
+            # Pared down response; we are only testing to see if #workspaces returns
+            # the 'items' property of the reponse.
+            body: { "items": expected_workspaces }.to_json,
+            status: response_status
+          }
+        ) do
+          # Call and return #workspaces as value for actual_workspaces helper.
+          client.workspaces
+        end
+      }
+
+      it 'returns a list of hashes representing each workspace' do
+        expect(actual_workspaces).to eq expected_workspaces
+      end
+    end
+
     describe '#workspace_search' do
       let(:workspace_id) { randstr }
       let(:params) { { query: '', kind: '', limit: '', offset: '', order_by: '',
@@ -171,9 +208,6 @@ RSpec.describe SonyCiApi::Client do
             status: response_status
           }
         ) do
-          # here we call the method under test, indirectly because we have 2
-          # ways of calling it. The return value becomes the value for
-          # :workspace_search.
           call_workspace_search
         end
       end
