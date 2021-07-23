@@ -1,7 +1,7 @@
 require_relative 'lib/sony_ci_api/version'
 
 Gem::Specification.new do |spec|
-  spec.name          = "ci_api"
+  spec.name          = "sony_ci_api"
   spec.version       = SonyCiApi::VERSION
   spec.authors       = ["Andrew Myers"]
   spec.email         = ["andrew_myers@wgbh.org"]
@@ -22,6 +22,7 @@ Gem::Specification.new do |spec|
   spec.require_paths = ["lib"]
 
   spec.add_dependency 'activesupport'
+  spec.add_dependency 'faraday_middleware'
 
   spec.add_development_dependency 'faraday'
   spec.add_development_dependency 'faraday_middleware'

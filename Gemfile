@@ -1,6 +1,6 @@
 source "https://rubygems.org"
 
-# Specify your gem's dependencies in ci_api.gemspec
+# Specify your gem's dependencies insony_ci_api.gemspec
 gemspec
 
 gem "rake", "~> 12.0"
