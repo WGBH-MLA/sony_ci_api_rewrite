@@ -90,7 +90,7 @@ module SonyCiApi
 
     def workspace_id=(wid)
       # unset all the cached attrs that depend on workspace_id
-      @workspace, @network, @network_id = nil
+      @workspace = nil
       @workspace_id = wid
     end
 
@@ -117,6 +117,14 @@ module SonyCiApi
       @conn = api_conn
     end
 
+    def asset(asset_id)
+      get "/assets/#{asset_id}"
+    end
+
+    def workspace_contents( workspace_id = self.workspace_id, **params )
+      get("/workspaces/#{workspace_id}/contents", params: params)['items']
+    end
+
 
     private
 
@@ -135,12 +143,6 @@ module SonyCiApi
 
     # Class methods
     class << self
-      # def url(path, **params)
-      #   url_params = URI.encode_www_form(camelize_params(params))
-      #   full_url = File.join( [ BASE_URL, path.to_s ].reject(&:empty?) )
-      #   full_url = [ full_url, url_params ].reject(&:empty?).join('?')
-      # end
-
       # Converts a params hash (with symbol keys that have underscores) to
       # a param hash where the keys are strings, and lower-camelcase, like the
       # Sony Ci API expects.

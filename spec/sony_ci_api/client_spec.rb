@@ -18,6 +18,11 @@ def stub_request_and_call_block(http_method, path, with: {}, stub_response: {})
 end
 
 RSpec.describe SonyCiApi::Client do
+
+  def randhex(len=32)
+    len.times.map { rand(15).to_s(16) }.join
+  end
+
   def randstr(len=6)
     @chars ||= [ ('a'..'z').to_a, ('A'..'Z').to_a, ('0'..'9').to_a ].flatten
     Array.new(len.to_i) { @chars.sample }.join
@@ -180,7 +185,7 @@ RSpec.describe SonyCiApi::Client do
     end
 
     describe '#workspace_search' do
-      let(:workspace_id) { randstr }
+      let(:workspace_id) { randhex }
       let(:params) { { query: '', kind: '', limit: '', offset: '', order_by: '',
                        order_direction: '', fields: '' } }
       let(:response_body) {
@@ -212,7 +217,7 @@ RSpec.describe SonyCiApi::Client do
         end
       end
 
-      it 'returns the list of items' do
+      it 'returns the list of items,' do
         expect(workspace_search).to eq response_body['items']
       end
 
@@ -223,6 +228,36 @@ RSpec.describe SonyCiApi::Client do
         let(:call_workspace_search) { client.workspace_search(**params) }
         it 'returns the list of itmes for ' do
           expect(workspace_search).to eq response_body['items']
+        end
+      end
+    end
+
+    describe '#asset', :focus do
+      let(:asset_id) { randhex }
+      # Pared down response body. In reality it's much bigger.
+      let(:response_body) { { "id" => asset_id, "name" => "foovie.mp4" } }
+      let(:asset) {
+        stub_request_and_call_block(
+          :get,
+          "#{base_url}/assets/#{asset_id}",
+          stub_response: {
+            body: response_body.to_json,
+            status: response_status
+          }
+        ) do
+          # Call the method under test
+          client.asset(asset_id)
+        end
+      }
+
+      it 'returns the asset hash' do
+        expect(asset).to eq response_body
+      end
+
+      context 'with an asset id that cannot be found,' do
+        let(:response_status) { 404 }
+        it 'raises an error' do
+          expect { asset }.to raise_error Faraday::ResourceNotFound
         end
       end
     end
