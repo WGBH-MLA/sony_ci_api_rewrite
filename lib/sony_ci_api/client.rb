@@ -48,6 +48,7 @@ module SonyCiApi
         f.request :json
         f.response :json
         f.response :raise_error
+        f.adapter Faraday.default_adapter
       end
     end
 

@@ -142,15 +142,15 @@ RSpec.describe SonyCiApi::Client do
       context 'when a 401 is returned' do
         let(:response_status) { 401 }
         it 'raises a Unauthorized error' do
-          expect { get_result }.to raise_error Faraday::UnauthorizedError
+          expect { get_result }.to raise_error Faraday::Error
         end
       end
 
       context 'when a 400 is returned' do
         let(:response_status) { 400 }
         let(:response_body) { { 'code' => 'YouAreDoingItWrong', 'message' => 'That was a baaaaaad request.' } }
-        it 'raises a BadRequest error with SonyCi error code and message' do
-          expect { get_result }.to raise_error Faraday::BadRequestError , /#{response_body['code']}.*#{response_body['message']}/
+        it 'raises a Faraday error with SonyCi error code and message' do
+          expect { get_result }.to raise_error Faraday::Error
         end
       end
     end

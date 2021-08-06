@@ -22,9 +22,8 @@ Gem::Specification.new do |spec|
   spec.require_paths = ["lib"]
 
   spec.add_dependency 'activesupport'
-  spec.add_dependency 'faraday', '~> 1.3.0'
+  spec.add_dependency 'faraday', '~> 0.12'
   spec.add_dependency 'faraday_middleware'
   spec.add_development_dependency 'webmock'
   spec.add_development_dependency 'pry-byebug'
-
 end
