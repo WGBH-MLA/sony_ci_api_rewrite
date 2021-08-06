@@ -19,11 +19,25 @@ module SonyCiApi
     # to be set here.
     attr_accessor :workspace_id
 
-    def initialize(config={})
-      @config = File.exist?(config.to_s) ? YAML.safe_load(File.read(config), symbolize_names: true) : config
+    def initialize( config = {} )
+      load_config! config
       # Set the default workspace, if present, from the config
-      @workspace_id = @config.delete('workspace_id')
+      @workspace_id = self.config.delete('workspace_id')
     end
+
+    def load_config!(config={})
+      if File.exist?(config.to_s)
+        @config = YAML.load(File.read(config), symbolize_names: true)
+      elsif config.is_a? Hash
+        @config = config
+      else
+        raise InvalidConfigError, "config is expected to be a valid YAML file or " \
+                             "a Hash, but #{config.class} was given. "
+      end
+    rescue Psych::SyntaxError => e
+      raise InvalidConfigError, e.message
+    end
+
 
     def conn
       @conn ||= api_conn

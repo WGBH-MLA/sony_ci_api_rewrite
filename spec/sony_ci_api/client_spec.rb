@@ -232,7 +232,7 @@ RSpec.describe SonyCiApi::Client do
       end
     end
 
-    describe '#asset', :focus do
+    describe '#asset' do
       let(:asset_id) { randhex }
       # Pared down response body. In reality it's much bigger.
       let(:response_body) { { "id" => asset_id, "name" => "foovie.mp4" } }
@@ -258,6 +258,60 @@ RSpec.describe SonyCiApi::Client do
         let(:response_status) { 404 }
         it 'raises an error' do
           expect { asset }.to raise_error Faraday::ResourceNotFound
+        end
+      end
+    end
+  end
+
+  describe '#load_config!' do
+    let(:config_hash) {
+      {
+        username: randstr,
+        password: randstr,
+        workspace_id: randhex
+      }
+    }
+
+    # Create some temp files for use in the specs.
+    let(:valid_config_file) { Tempfile.new }
+    let(:invalid_config_file) { Tempfile.new }
+
+    before do
+      # Write to the temp files used in the specs
+      valid_config_file.write(config_hash.to_yaml) && valid_config_file.rewind
+      invalid_config_file.write(':') && invalid_config_file.rewind
+    end
+
+    after do
+      # close nd delete the tmp files used in the specs.
+      valid_config_file.close && valid_config_file.unlink
+      invalid_config_file.close && invalid_config_file.unlink
+    end
+
+    context 'with a valid YAML config file' do
+      it 'loads config from the YAML file' do
+        expect { client.load_config!(valid_config_file.path) }.not_to raise_error
+        expect(client.config).to eq config_hash
+      end
+    end
+
+    context 'with a config hash' do
+      it 'uses the config hash' do
+        expect { client.load_config!(config_hash) }.not_to raise_error
+        expect(client.config).to eq config_hash
+      end
+    end
+
+    context 'with a non-YAML file' do
+      it 'raises an error' do
+        expect { client.load_config!(invalid_config_file.path) }.to raise_error SonyCiApi::InvalidConfigError
+      end
+    end
+
+    context 'with things that are not hashes for existing files' do
+      it 'raises an InvalidConfigError' do
+        ["not a file", Object.new, 123, Array.new ].each do |invalid_config|
+          expect { client.load_config!(invalid_config) }.to raise_error SonyCiApi::InvalidConfigError
         end
       end
     end
