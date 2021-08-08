@@ -22,7 +22,7 @@ module SonyCiApi
     def initialize( config = {} )
       load_config! config
       # Set the default workspace, if present, from the config
-      @workspace_id = self.config.delete('workspace_id')
+      @workspace_id = self.config.delete(:workspace_id)
     end
 
     def load_config!(config={})
