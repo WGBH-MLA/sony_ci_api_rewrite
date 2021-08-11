@@ -135,6 +135,10 @@ module SonyCiApi
       get "/assets/#{asset_id}"
     end
 
+    def asset_download(asset_id)
+      get "/assets/#{asset_id}/download"
+    end
+
     def workspace_contents( workspace_id = self.workspace_id, **params )
       get("/workspaces/#{workspace_id}/contents", params: params)['items']
     end

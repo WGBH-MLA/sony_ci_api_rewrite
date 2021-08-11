@@ -261,6 +261,34 @@ RSpec.describe SonyCiApi::Client do
         end
       end
     end
+
+    describe '#asset_download' do
+      let(:asset_id) { randhex }
+      let(:response_body) {
+        {
+          'id' => asset_id,
+          'location' => randstr
+        }
+      }
+
+      let(:asset_download_info) {
+        stub_request_and_call_block(
+          :get,
+          "#{base_url}/assets/#{asset_id}/download",
+          stub_response: {
+            body: response_body.to_json,
+            status: response_status
+          }
+        ) do
+          # Call the method under test
+          client.asset_download(asset_id)
+        end
+      }
+
+      it 'returns download information for an asset' do
+        expect(asset_download_info).to eq response_body
+      end
+    end
   end
 
   describe '#load_config!' do
