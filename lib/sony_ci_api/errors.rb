@@ -35,7 +35,13 @@ module SonyCiApi
             401 => UnauthorizedError,
             404 => NotFoundError
           }.fetch(error.response[:status], self)
-          error_class.new(response_body['message'], http_status: error.response[:status], from_error: error, error_code: response_body['code'])
+
+          # Sony Ci puts the error message and error code in different places
+          # for different errors.
+          msg = response_body['message'] || response_body['error_description']
+          error_code = response_body['code'] || response_body['error']
+
+          error_class.new(msg, http_status: error.response[:status], from_error: error, error_code: error_code)
         end
     end
   end
