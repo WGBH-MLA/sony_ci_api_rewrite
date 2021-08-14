@@ -151,11 +151,8 @@ module SonyCiApi
         conn.authorization :Bearer, access_token
         @response = conn.send(http_method, path, camelize_params(params), headers )
         @response.body
-      rescue Faraday::ResourceNotFound, Faraday::BadRequestError => e
-        # For 4xx and 5xx responses that come with a Sony Ci error code and
-        # message, put those into the error and re-raise it.
-        response_body = JSON.parse(e.response[:body])
-        raise e, "#{response_body['code']} - #{response_body['message']}"
+      rescue => error
+        raise Error.create_from(error)
       end
 
 

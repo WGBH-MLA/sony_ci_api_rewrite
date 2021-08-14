@@ -134,23 +134,23 @@ RSpec.describe SonyCiApi::Client do
       context 'when a 404 is returned' do
         let(:response_status) { 404 }
         let(:response_body) { { 'code' => 'FooNotFound', 'message' => 'Foo not found.' } }
-        it 'raises a NotFound error with SonyCi error code and message' do
-          expect { get_result }.to raise_error Faraday::ResourceNotFound, /#{response_body['code']}.*#{response_body['message']}/
+        it 'raises a NotFoundError with SonyCi error message' do
+          expect { get_result }.to raise_error SonyCiApi::NotFoundError, /#{response_body['code']}.*#{response_body['message']}/
         end
       end
 
       context 'when a 401 is returned' do
         let(:response_status) { 401 }
         it 'raises a Unauthorized error' do
-          expect { get_result }.to raise_error Faraday::UnauthorizedError
+          expect { get_result }.to raise_error SonyCiApi::UnauthorizedError
         end
       end
 
       context 'when a 400 is returned' do
         let(:response_status) { 400 }
         let(:response_body) { { 'code' => 'YouAreDoingItWrong', 'message' => 'That was a baaaaaad request.' } }
-        it 'raises a BadRequest error with SonyCi error code and message' do
-          expect { get_result }.to raise_error Faraday::BadRequestError , /#{response_body['code']}.*#{response_body['message']}/
+        it 'raises a SonyCiApi::Error with SonyCi error code and message' do
+          expect { get_result }.to raise_error SonyCiApi::Error
         end
       end
     end
@@ -256,8 +256,8 @@ RSpec.describe SonyCiApi::Client do
 
       context 'with an asset id that cannot be found,' do
         let(:response_status) { 404 }
-        it 'raises an error' do
-          expect { asset }.to raise_error Faraday::ResourceNotFound
+        it 'raises a SonyCiApi::NotFound error' do
+          expect { asset }.to raise_error SonyCiApi::NotFoundError
         end
       end
     end
