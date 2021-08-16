@@ -27,7 +27,8 @@ module SonyCiApi
 
     def load_config!(config={})
       if File.exist?(config.to_s)
-        @config = YAML.load(File.read(config), symbolize_names: true)
+        template = ERB.new(File.read(config))
+        @config = YAML.load(template.result(binding), symbolize_names: true)
       elsif config.is_a? Hash
         @config = config
       else

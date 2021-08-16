@@ -49,7 +49,7 @@ RSpec.describe SonyCiApi::Client do
   }
 
   # Request params for authentication request
-  let(:mock_access_token) { 'lasdkfjsakfjdsaljk' }
+  let(:mock_access_token) { randhex }
   let(:response_body) { { "fooBarResponse" => randstr } }
   let(:response_status) { 200 }
 
@@ -296,30 +296,69 @@ RSpec.describe SonyCiApi::Client do
       {
         username: randstr,
         password: randstr,
-        workspace_id: randhex
+        workspace_id: randhex,
+        client_id: randhex,
+        client_secret: randhex
+      }
+    }
+
+    let(:config_hash_with_erb) {
+      {
+        username: "<%= TestCredentials.config_hash[:username] %>",
+        password: "<%= TestCredentials.config_hash[:password] %>",
+        workspace_id: "<%= TestCredentials.config_hash[:workspace_id] %>",
+        client_id: "<%= TestCredentials.config_hash[:client_id] %>",
+        client_secret: "<%= TestCredentials.config_hash[:client_secret] %>"
       }
     }
 
     # Create some temp files for use in the specs.
     let(:valid_config_file) { Tempfile.new }
+    let(:valid_config_file_erb) { Tempfile.new }
     let(:invalid_config_file) { Tempfile.new }
 
     before do
       # Write to the temp files used in the specs
       valid_config_file.write(config_hash.to_yaml) && valid_config_file.rewind
+      valid_config_file_erb.write(config_hash_with_erb.to_yaml) && valid_config_file_erb.rewind
       invalid_config_file.write(':') && invalid_config_file.rewind
+
+      # Create some dummy class available in a global scope that can be
+      # recognized by ERB within SonyCiApi::Client#load_config!
+      class TestCredentials
+        def self.config_hash
+          @config_hash ||= {
+            username: rand(9999).to_s,
+            password: rand(9999).to_s,
+            workspace_id: rand(9999).to_s,
+            client_id: rand(9999).to_s,
+            client_secret: rand(9999).to_s
+          }
+        end
+      end
     end
 
     after do
-      # close nd delete the tmp files used in the specs.
+      # close and delete the tmp files used in the specs.
       valid_config_file.close && valid_config_file.unlink
+      valid_config_file_erb.close && valid_config_file_erb.unlink
       invalid_config_file.close && invalid_config_file.unlink
+
+      # Destroy our FakeCredentials object.
+      Object.send(:remove_const, :TestCredentials)
     end
 
     context 'with a valid YAML config file' do
       it 'loads config from the YAML file' do
         expect { client.load_config!(valid_config_file.path) }.not_to raise_error
         expect(client.config).to eq config_hash
+      end
+    end
+
+    context 'with a valid YAML config file that uses ERB' do
+      it 'loads config from the YAML file' do
+        expect { client.load_config!(valid_config_file_erb.path) }.not_to raise_error
+        expect(client.config).to eq TestCredentials.config_hash
       end
     end
 
