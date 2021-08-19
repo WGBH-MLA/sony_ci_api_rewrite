@@ -130,61 +130,85 @@ RSpec.describe SonyCiApi::Client do
       end
 
       # ERROR CASES
-      # Ensure proper errors are returned for each HTTP error code.
+      # Ensure proper errors are returned and that the for each HTTP error code.
       describe 'Error Cases' do
         context 'when a 400 is returned' do
           let(:response_status) { 400 }
-          it 'raises a SonyCiApi::Error with SonyCi error code and message' do
-            expect { get_result }.to raise_error SonyCiApi::ClientError
+          it 'raises a SonyCiApi::ClientError' do
+            expect { get_result }.to raise_error do |error|
+              expect(error).to be_a SonyCiApi::ClientError
+              expect(error.http_status).to eq 400
+            end
           end
         end
 
         context 'when a 401 is returned' do
           let(:response_status) { 401 }
           it 'raises a Unauthorized error' do
-            expect { get_result }.to raise_error SonyCiApi::UnauthorizedError
+            expect { get_result }.to raise_error do |error|
+              expect(error).to be_a SonyCiApi::UnauthorizedError
+              expect(error.http_status).to eq 401
+            end
           end
         end
 
         context 'when a 403 is returned' do
           let(:response_status) { 403 }
           it 'raises a NotFoundError error' do
-            expect { get_result }.to raise_error SonyCiApi::ForbiddenError
+            expect { get_result }.to raise_error do |error|
+              expect(error).to be_a SonyCiApi::ForbiddenError
+              expect(error.http_status).to eq 403
+            end
           end
         end
 
         context 'when a 404 is returned' do
           let(:response_status) { 404 }
           it 'raises a NotFoundError error' do
-            expect { get_result }.to raise_error SonyCiApi::NotFoundError
+            expect { get_result }.to raise_error do |error|
+              expect(error).to be_a SonyCiApi::NotFoundError
+              expect(error.http_status).to eq 404
+            end
           end
         end
 
         context 'when a 407 is returned' do
           let(:response_status) { 407 }
           it 'raises a ProxyAuthError error' do
-            expect { get_result }.to raise_error SonyCiApi::ProxyAuthError
+            expect { get_result }.to raise_error do |error|
+              expect(error).to be_a SonyCiApi::ProxyAuthError
+              expect(error.http_status).to eq 407
+            end
           end
         end
 
         context 'when a 409 is returned' do
           let(:response_status) { 409 }
           it 'raises a ConflictError error' do
-            expect { get_result }.to raise_error SonyCiApi::ConflictError
+            expect { get_result }.to raise_error do |error|
+              expect(error).to be_a SonyCiApi::ConflictError
+              expect(error.http_status).to eq 409
+            end
           end
         end
 
         context 'when a 422 is returned' do
           let(:response_status) { 422 }
           it 'raises a UnprocessableEntity error' do
-            expect { get_result }.to raise_error SonyCiApi::UnprocessableEntityError
+            expect { get_result }.to raise_error do |error|
+              expect(error).to be_a SonyCiApi::UnprocessableEntityError
+              expect(error.http_status).to eq 422
+            end
           end
         end
 
         context 'when a 500 is returned' do
           let(:response_status) { 500 }
-          it 'raises a UnprocessableEntity error' do
-            expect { get_result }.to raise_error SonyCiApi::ServerError
+          it 'raises a Server error' do
+            expect { get_result }.to raise_error do |error|
+              expect(error).to be_a SonyCiApi::ServerError
+              expect(error.http_status).to eq 500
+            end
           end
         end
       end

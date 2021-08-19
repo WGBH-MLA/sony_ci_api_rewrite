@@ -55,8 +55,25 @@ module SonyCiApi
     end
   end
 
-  # Module that knows how to extract info from Faraday errors.
-  module FromFaradayError
+  # Base class for HTTP errors that wrap Faraday::Error specifically.
+  class HttpError < Error
+    def initialize(from_error:)
+      raise ArgumentError, "expected :from_error to be a Faraday::Error, but #{from_error.class} was given" unless from_error.is_a? Faraday::Error
+      super(nil, from_error: from_error)
+    end
+
+    def http_status
+      from_error.response[:status]
+    end
+
+    def request_url
+      from_error.request[:url_path]
+    end
+
+    def request_params
+      from_error.request[:params]
+    end
+
     def to_json
       super.merge(
         {
@@ -68,10 +85,7 @@ module SonyCiApi
     end
   end
 
-  # Base class for HTTP errors.
-  class HttpError < Error;
-    include FromFaradayError
-  end
+  # Client errors
   class ClientError < HttpError; end
   class BadRequestError < ClientError; end
   class UnauthorizedError < ClientError; end
@@ -80,11 +94,12 @@ module SonyCiApi
   class ProxyAuthError < ClientError; end
   class ConflictError < ClientError; end
   class UnprocessableEntityError < ClientError; end
+  # Server errors
   class ServerError < HttpError; end
   class TimeoutError < ServerError; end
   class NilStatusError < ServerError; end
-  class ConnectionFailed < Error; end
-  class SSLError < Error; end
+  class ConnectionFailed < ServerError; end
+  class SSLError < ServerError; end
 
   # Other errors not associated with HTTP.
   class InvalidConfigError < Error; end
