@@ -1,52 +1,91 @@
 module SonyCiApi
   class Error < StandardError
-    attr_reader :http_status, :error_code, :from_error
-
-    def initialize(msg = nil, http_status: 500, from_error: nil, error_code: nil)
-      @http_status = http_status
+    def initialize(msg = nil, from_error: nil)
       @from_error = from_error
-      @error_code = error_code
-      full_msg = if error_code
-        "#{error_code} - #{msg}"
-      else
-        msg
-      end
-      super(full_msg)
+      super(msg)
+    end
+
+    def to_s
+      from_error(:message) || super
+    end
+
+    def from_error(*args)
+      return nil if @from_error.nil?
+      return @from_error if args.empty?
+      method = args.shift
+      @from_error.send(method, *args)
+    end
+
+    def to_h
+      {
+        error: self.class,
+        error_message: from_error(:message),
+        from_error: from_error ? from_error.class : nil
+      }
     end
 
     class << self
-      # Maps non-SonyCiApi errors to subclasses of SonyCiApi::Error.
+      # Factory class method that maps errors to subclasses of SonyCiApi::Error.
+      # If the error is not explicitly mapped in error_class_map, returns an
+      # instance of the SonyCiApi::Error.
       def create_from(error)
-        if error.is_a?(Faraday::Error)
-          create_from_faraday_error(error)
-        else
-          # Default case, no special handling
-          self.new(error.message, from_error: error)
-        end
+        error_class_map.fetch(error.class) do |klass|
+          self
+        end.new(from_error: error)
       end
 
       private
-        def create_from_faraday_error(error)
-          response_body = JSON.parse(error.response[:body])
-          # Get the error class that corresponds with the HTTP response status,
-          # defaulting to the base class SonyCiApi::Error if for some reason
-          # the response status is not yet represented.
-          error_class = {
-            401 => UnauthorizedError,
-            404 => NotFoundError
-          }.fetch(error.response[:status], self)
-
-          # Sony Ci puts the error message and error code in different places
-          # for different errors.
-          msg = response_body['message'] || response_body['error_description']
-          error_code = response_body['code'] || response_body['error']
-
-          error_class.new(msg, http_status: error.response[:status], from_error: error, error_code: error_code)
+        def error_class_map
+          @error_class_map ||= {
+            Faraday::ClientError               => ClientError,
+            Faraday::BadRequestError           => BadRequestError,
+            Faraday::UnauthorizedError         => UnauthorizedError,
+            Faraday::ForbiddenError            => ForbiddenError,
+            Faraday::ResourceNotFound          => NotFoundError,
+            Faraday::ProxyAuthError            => ProxyAuthError,
+            Faraday::ConflictError             => ConflictError,
+            Faraday::UnprocessableEntityError  => UnprocessableEntityError,
+            Faraday::ServerError               => ServerError,
+            Faraday::TimeoutError              => TimeoutError,
+            Faraday::NilStatusError            => NilStatusError,
+            Faraday::ConnectionFailed          => ConnectionFailed,
+            Faraday::SSLError                  => SSLError
+          }
         end
     end
   end
 
+  # Module that knows how to extract info from Faraday errors.
+  module FromFaradayError
+    def to_json
+      super.merge(
+        {
+          https_status: http_status,
+          request_url: request_url,
+          request_params: request_params
+        }
+      )
+    end
+  end
+
+  # Base class for HTTP errors.
+  class HttpError < Error;
+    include FromFaradayError
+  end
+  class ClientError < HttpError; end
+  class BadRequestError < ClientError; end
+  class UnauthorizedError < ClientError; end
+  class ForbiddenError < ClientError; end
+  class NotFoundError < ClientError; end
+  class ProxyAuthError < ClientError; end
+  class ConflictError < ClientError; end
+  class UnprocessableEntityError < ClientError; end
+  class ServerError < HttpError; end
+  class TimeoutError < ServerError; end
+  class NilStatusError < ServerError; end
+  class ConnectionFailed < Error; end
+  class SSLError < Error; end
+
+  # Other errors not associated with HTTP.
   class InvalidConfigError < Error; end
-  class UnauthorizedError < Error; end
-  class NotFoundError < Error; end
 end

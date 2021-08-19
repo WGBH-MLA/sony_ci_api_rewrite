@@ -130,27 +130,62 @@ RSpec.describe SonyCiApi::Client do
       end
 
       # ERROR CASES
-      # TODO: add error codes and messages to exceptions for clearer messaging.
-      context 'when a 404 is returned' do
-        let(:response_status) { 404 }
-        let(:response_body) { { 'code' => 'FooNotFound', 'message' => 'Foo not found.' } }
-        it 'raises a NotFoundError with SonyCi error message' do
-          expect { get_result }.to raise_error SonyCiApi::NotFoundError, /#{response_body['code']}.*#{response_body['message']}/
+      # Ensure proper errors are returned for each HTTP error code.
+      describe 'Error Cases' do
+        context 'when a 400 is returned' do
+          let(:response_status) { 400 }
+          it 'raises a SonyCiApi::Error with SonyCi error code and message' do
+            expect { get_result }.to raise_error SonyCiApi::ClientError
+          end
         end
-      end
 
-      context 'when a 401 is returned' do
-        let(:response_status) { 401 }
-        it 'raises a Unauthorized error' do
-          expect { get_result }.to raise_error SonyCiApi::UnauthorizedError
+        context 'when a 401 is returned' do
+          let(:response_status) { 401 }
+          it 'raises a Unauthorized error' do
+            expect { get_result }.to raise_error SonyCiApi::UnauthorizedError
+          end
         end
-      end
 
-      context 'when a 400 is returned' do
-        let(:response_status) { 400 }
-        let(:response_body) { { 'code' => 'YouAreDoingItWrong', 'message' => 'That was a baaaaaad request.' } }
-        it 'raises a SonyCiApi::Error with SonyCi error code and message' do
-          expect { get_result }.to raise_error SonyCiApi::Error
+        context 'when a 403 is returned' do
+          let(:response_status) { 403 }
+          it 'raises a NotFoundError error' do
+            expect { get_result }.to raise_error SonyCiApi::ForbiddenError
+          end
+        end
+
+        context 'when a 404 is returned' do
+          let(:response_status) { 404 }
+          it 'raises a NotFoundError error' do
+            expect { get_result }.to raise_error SonyCiApi::NotFoundError
+          end
+        end
+
+        context 'when a 407 is returned' do
+          let(:response_status) { 407 }
+          it 'raises a ProxyAuthError error' do
+            expect { get_result }.to raise_error SonyCiApi::ProxyAuthError
+          end
+        end
+
+        context 'when a 409 is returned' do
+          let(:response_status) { 409 }
+          it 'raises a ConflictError error' do
+            expect { get_result }.to raise_error SonyCiApi::ConflictError
+          end
+        end
+
+        context 'when a 422 is returned' do
+          let(:response_status) { 422 }
+          it 'raises a UnprocessableEntity error' do
+            expect { get_result }.to raise_error SonyCiApi::UnprocessableEntityError
+          end
+        end
+
+        context 'when a 500 is returned' do
+          let(:response_status) { 500 }
+          it 'raises a UnprocessableEntity error' do
+            expect { get_result }.to raise_error SonyCiApi::ServerError
+          end
         end
       end
     end
