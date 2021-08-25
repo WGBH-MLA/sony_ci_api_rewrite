@@ -38,18 +38,18 @@ RSpec.describe SonyCiApi::Error do
     end
   end
 
-  describe '#to_h' do
+  describe '#json_hash' do
     let(:msg) { rand.to_s }
     let(:from_error_class) { Class.new(StandardError) }
     let(:from_error) { from_error_class.new(msg) }
     subject { described_class.new(from_error: from_error) }
 
-    it 'returns a hash of error info that can be used in JSON respones' do
+    it 'returns a hash of error info that can be used in JSON response' do
       expect(subject.to_h).to eq(
         {
-          error: described_class,
-          error_message: msg,
-          from_error: from_error_class
+          "error" => described_class.to_s,
+          "error_message" => msg,
+          "from_error" => from_error_class.to_s
         }
       )
     end
