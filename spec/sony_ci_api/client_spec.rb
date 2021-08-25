@@ -144,9 +144,9 @@ RSpec.describe SonyCiApi::Client do
 
         context 'when a 401 is returned' do
           let(:response_status) { 401 }
-          it 'raises a Unauthorized error' do
+          it 'raises a ClientError error' do
             expect { get_result }.to raise_error do |error|
-              expect(error).to be_a SonyCiApi::UnauthorizedError
+              expect(error).to be_a SonyCiApi::ClientError
               expect(error.http_status).to eq 401
             end
           end
@@ -154,9 +154,9 @@ RSpec.describe SonyCiApi::Client do
 
         context 'when a 403 is returned' do
           let(:response_status) { 403 }
-          it 'raises a NotFoundError error' do
+          it 'raises a ClientError error' do
             expect { get_result }.to raise_error do |error|
-              expect(error).to be_a SonyCiApi::ForbiddenError
+              expect(error).to be_a SonyCiApi::ClientError
               expect(error.http_status).to eq 403
             end
           end
@@ -174,9 +174,9 @@ RSpec.describe SonyCiApi::Client do
 
         context 'when a 407 is returned' do
           let(:response_status) { 407 }
-          it 'raises a ProxyAuthError error' do
+          it 'raises a ConnectionFailed error' do
             expect { get_result }.to raise_error do |error|
-              expect(error).to be_a SonyCiApi::ProxyAuthError
+              expect(error).to be_a SonyCiApi::ConnectionFailed
               expect(error.http_status).to eq 407
             end
           end
@@ -184,9 +184,9 @@ RSpec.describe SonyCiApi::Client do
 
         context 'when a 409 is returned' do
           let(:response_status) { 409 }
-          it 'raises a ConflictError error' do
+          it 'raises a ClientError error' do
             expect { get_result }.to raise_error do |error|
-              expect(error).to be_a SonyCiApi::ConflictError
+              expect(error).to be_a SonyCiApi::ClientError
               expect(error.http_status).to eq 409
             end
           end
@@ -194,9 +194,9 @@ RSpec.describe SonyCiApi::Client do
 
         context 'when a 422 is returned' do
           let(:response_status) { 422 }
-          it 'raises a UnprocessableEntity error' do
+          it 'raises a ClientError error' do
             expect { get_result }.to raise_error do |error|
-              expect(error).to be_a SonyCiApi::UnprocessableEntityError
+              expect(error).to be_a SonyCiApi::ClientError
               expect(error.http_status).to eq 422
             end
           end
@@ -204,9 +204,9 @@ RSpec.describe SonyCiApi::Client do
 
         context 'when a 500 is returned' do
           let(:response_status) { 500 }
-          it 'raises a Server error' do
+          it 'raises a ClientError error' do
             expect { get_result }.to raise_error do |error|
-              expect(error).to be_a SonyCiApi::ServerError
+              expect(error).to be_a SonyCiApi::ClientError
               expect(error.http_status).to eq 500
             end
           end
