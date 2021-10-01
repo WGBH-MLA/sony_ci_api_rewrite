@@ -17,6 +17,7 @@ def stub_request_and_call_block(http_method, path, with: {}, stub_response: {})
   return_val
 end
 
+
 RSpec.describe SonyCiApi::Client do
 
   def randhex(len=32)
@@ -31,6 +32,66 @@ RSpec.describe SonyCiApi::Client do
   # Local helper
   def camelize_params(**params)
     SonyCiApi::Client.camelize_params(**params)
+  end
+
+  # Headers that are sent always.
+  let(:always_headers) {
+    {
+      'Accept' => '*/*',
+      'Accept-Encoding' => 'gzip;q=1.0,deflate;q=0.6,identity;q=0.3',
+      'User-Agent' => "Faraday v#{Faraday::VERSION}"
+    }
+  }
+
+
+  RSpec.shared_examples 'HTTP request method' do |http_method:|
+
+    let(:response_status) { 200 }
+    let(:response_body) { { "fooBarResponse" => randstr } }
+    let(:request_params) {
+      { "fooBar" => randstr }
+    }
+    let(:request_params_underscored) {
+      Hash[ request_params.map { |k, v| [ k.camelize, v ] } ]
+    }
+    let(:payload) {
+      case http_method
+      when :put, :post
+        { body: request_params }
+      when :get, :delete
+        { query: request_params }
+      else
+        {}
+      end
+    }
+
+    # The return value of the stubbed HTTP request.
+    let(:return_val) {
+      stub_request_and_call_block(
+        http_method,
+        "#{base_url}/foo/bar",
+        with: {
+          headers: headers_with_bearer_auth.merge({
+            'Foo-Header' => 'foo/header'
+          })
+        }.merge(payload),
+        stub_response: {
+          status: response_status,
+          body: response_body.to_json,
+        }
+      ) do
+        client.send(http_method,
+          "foo/bar",
+          params: request_params_underscored,
+          headers: { foo_header: "foo/header" }
+        )
+      end
+    }
+
+
+    it "makes the #{http_method} request" do
+      expect(return_val).to eq response_body
+    end
   end
 
   let(:base_url) { SonyCiApi::Client::BASE_URL }
@@ -51,6 +112,11 @@ RSpec.describe SonyCiApi::Client do
   # Request params for authentication request
   let(:mock_access_token) { randhex }
   let(:response_body) { { "fooBarResponse" => randstr } }
+  let(:headers_with_basic_auth) {
+    always_headers.merge({
+      'Authorization' => "Basic #{encoded_username_and_password}"
+    })
+  }
   let(:response_status) { 200 }
 
   describe '#access_token' do
@@ -64,13 +130,7 @@ RSpec.describe SonyCiApi::Client do
             client_id: client_id,
             client_secret: client_secret
           }.to_json,
-          headers: {
-            'Accept' => '*/*',
-            'Accept-Encoding' => 'gzip;q=1.0,deflate;q=0.6,identity;q=0.3',
-            'Authorization' => "Basic #{encoded_username_and_password}",
-            'Content-Type' => 'application/json',
-            'User-Agent' => "Faraday v#{Faraday::VERSION}"
-          }
+          headers: headers_with_basic_auth
         },
         stub_response: {
           body: { 'access_token' => mock_access_token }.to_json,
@@ -90,7 +150,17 @@ RSpec.describe SonyCiApi::Client do
   context 'with a valid access token' do
     before { allow(client).to receive(:access_token).and_return(mock_access_token) }
 
+    let(:headers_with_bearer_auth) {
+      always_headers.merge({
+        "Authorization" => "Bearer #{mock_access_token}"
+      })
+    }
+
     describe '#get' do
+
+      # Run shared spec to simply test the
+      it_behaves_like 'HTTP request method', http_method: :delete
+
       let(:response_status) { 200 }
       let(:response_body) { { "fooBarResponse" => randstr } }
 
@@ -101,9 +171,9 @@ RSpec.describe SonyCiApi::Client do
           "#{base_url}/foo/bar",
           with: {
             query: { "fooBar" => "bar" },
-            headers: {
+            headers: headers_with_bearer_auth.merge({
               'Foo-Header' => 'foo/header'
-            }
+            })
           },
           stub_response: {
             status: response_status,
@@ -212,6 +282,18 @@ RSpec.describe SonyCiApi::Client do
           end
         end
       end
+    end
+
+    describe '#delete' do
+      it_behaves_like 'HTTP request method', http_method: :delete
+    end
+
+    describe '#post' do
+      it_behaves_like 'HTTP request method', http_method: :post
+    end
+
+    describe '#put' do
+      it_behaves_like 'HTTP request method', http_method: :put
     end
 
     describe 'workspaces' do

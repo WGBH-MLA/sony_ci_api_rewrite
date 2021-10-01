@@ -74,7 +74,9 @@ module SonyCiApi
       send_request(:put, path, params: params, headers: headers)
     end
 
-    def delete(path, params: {}); end        # TODO
+    def delete(path, params: {}, headers: {})
+      send_request(:delete, path, params: params, headers: headers)
+    end
 
     def access_token
       @access_token ||= begin
