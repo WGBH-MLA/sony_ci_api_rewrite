@@ -6,6 +6,7 @@ require 'active_support/core_ext/string/inflections'
 require 'forwardable'
 require 'base64'
 require 'yaml'
+require 'erb'
 
 module SonyCiApi
   class Client
