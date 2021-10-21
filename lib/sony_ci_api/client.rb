@@ -3,6 +3,7 @@ require 'uri'
 require 'faraday'
 require 'faraday_middleware'
 require 'active_support/core_ext/string/inflections'
+require 'active_support/core_ext/hash/indifferent_access'
 require 'forwardable'
 require 'base64'
 require 'yaml'
@@ -29,17 +30,17 @@ module SonyCiApi
     def load_config!(config={})
       if File.exist?(config.to_s)
         template = ERB.new(File.read(config))
-        @config = YAML.load(template.result(binding), symbolize_names: true)
+        config_hash = YAML.load(template.result(binding))
       elsif config.is_a? Hash
-        @config = config
+        config_hash = config
       else
         raise InvalidConfigError, "config is expected to be a valid YAML file or " \
                              "a Hash, but #{config.class} was given. "
       end
+      @config = config_hash.with_indifferent_access
     rescue Psych::SyntaxError => e
       raise InvalidConfigError, e.message
     end
-
 
     def conn
       @conn ||= api_conn
