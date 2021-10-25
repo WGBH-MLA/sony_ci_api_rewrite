@@ -144,10 +144,16 @@ module SonyCiApi
       get "/assets/#{asset_id}/download"
     end
 
+    def asset_stream_hls_url(asset_id)
+      stream_name = "#{asset_id}-stream"
+      expire_date = DateTime.now.next_day.iso8601
+      resp = post("/assets/#{asset_id}/streams", params: { streams: [ {name: stream_name, expirationDate: expire_date } ] }, headers: { "Content-Type" => "application/json" })
+      resp["complete"].first["streams"].find {|s| s["type"] == "hls" }["url"] if resp && resp["complete"]
+    end
+
     def workspace_contents( workspace_id = self.workspace_id, **params )
       get("/workspaces/#{workspace_id}/contents", params: params)['items']
     end
-
 
     private
 
