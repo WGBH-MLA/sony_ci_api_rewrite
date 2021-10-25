@@ -430,6 +430,51 @@ RSpec.describe SonyCiApi::Client do
         expect(asset_download_info).to eq response_body
       end
     end
+
+    describe '#asset_streams' do
+      let(:asset_id) { randhex }
+      let(:streaming_url) { "http://io.api.cimediacloud.com/assets/#{asset_id}/streams/smil_md5hash.m3u8"}
+      let(:request_body) { {} }
+      let(:response_body) {
+        {
+          "completeCount" => 1,
+          "errorCount" => 0,
+          "errors" => [],
+          "complete" => [
+            {
+              "name" => "stream1",
+              "kind" => "Stream",
+              "streams" => [
+                {
+                  "method" => "adaptive",
+                  "type" => "hls",
+                  "url" => streaming_url,
+                  "displayName" => "stream1"
+                }
+              ]
+            }
+          ]
+        }
+      }
+
+      let(:asset_stream_hls_url) {
+        stub_request_and_call_block(
+          :post,
+          "#{base_url}/assets/#{asset_id}/streams",
+          stub_response: {
+            body: response_body.to_json,
+            status: response_status
+          }
+        ) do
+          # Call the method under test
+          client.asset_stream_hls_url(asset_id)
+        end
+      }
+
+      it 'returns an HLS streaming URL for a given asset' do
+        expect(asset_stream_hls_url).to eq streaming_url
+      end
+    end
   end
 
   describe '#load_config!' do
@@ -440,7 +485,7 @@ RSpec.describe SonyCiApi::Client do
         workspace_id: randhex,
         client_id: randhex,
         client_secret: randhex
-      }
+      }.with_indifferent_access
     }
 
     let(:config_hash_with_erb) {
@@ -450,7 +495,7 @@ RSpec.describe SonyCiApi::Client do
         workspace_id: "<%= TestCredentials.config_hash[:workspace_id] %>",
         client_id: "<%= TestCredentials.config_hash[:client_id] %>",
         client_secret: "<%= TestCredentials.config_hash[:client_secret] %>"
-      }
+      }.with_indifferent_access
     }
 
     # Create some temp files for use in the specs.
@@ -474,7 +519,7 @@ RSpec.describe SonyCiApi::Client do
             workspace_id: rand(9999).to_s,
             client_id: rand(9999).to_s,
             client_secret: rand(9999).to_s
-          }
+          }.with_indifferent_access
         end
       end
     end
