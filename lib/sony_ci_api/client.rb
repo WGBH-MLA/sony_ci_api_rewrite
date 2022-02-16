@@ -155,6 +155,43 @@ module SonyCiApi
       get("/workspaces/#{workspace_id}/contents", params: params)['items']
     end
 
+    def mediaboxes
+      get("/mediaboxes")
+    end
+
+    def mediabox(mediabox_id)
+      get("/mediaboxes/#{mediabox_id}")
+    end
+
+    def mediabox_add_assets(mediabox_id, asset_ids=[])
+      mb = mediabox(mediabox_id)
+      # Map the mediabox response object to a params object suitable for request
+      # to PUT /mediaboxes/{id}. The objects are mostly but some fields differ,
+      # i.e. "recipients" and "assetIds".
+      params = {
+        "name" => mb['name'],
+        "type" => mb['type'],
+        "allowSourceDownload" => mb['allowSourceDownload'],
+        "allowPreviewDownload" => mb['allowPreviewDownload'],
+        "allowElementDownload" => mb['allowElementDownload'],
+        "recipients" => mb['users'].map { |user| user['email'] },
+        "message" => mb['message'],
+        "expirationDate" => mb['expiresOn'],
+        "notifyOnOpen" => mb['notifyOnOpen'],
+        "notifyOnChange" => mb['notifyOnChange'],
+        "filters" => mb['filters'],
+        "assetIds" => mb['assets'].map { |asset| asset['id'] }
+      }
+      # Append the asset_ids to the existing assetIds.
+      params['assetIds'] += Array(asset_ids)
+      # IMPORTANT! Uniquify the array, Sony Ci API will throw a confusing
+      # AssetNotFound error if there are duplicates.
+      params['assetIds'].uniq!
+
+      # Update the media box with existing data plus assetIds passed in.
+      put("mediaboxes/#{mediabox_id}", params: params)
+    end
+
     private
 
       def send_request(http_method, path, params: {}, headers: {})
