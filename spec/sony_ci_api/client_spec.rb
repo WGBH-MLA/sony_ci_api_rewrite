@@ -447,7 +447,7 @@ RSpec.describe SonyCiApi::Client do
               "streams" => [
                 {
                   "method" => "adaptive",
-                  "type" => "hls",
+                  "type" => stream_type,
                   "url" => streaming_url,
                   "displayName" => "stream1"
                 }
@@ -457,7 +457,7 @@ RSpec.describe SonyCiApi::Client do
         }
       }
 
-      let(:asset_stream_hls_url) {
+      let(:asset_stream_url) {
         stub_request_and_call_block(
           :post,
           "#{base_url}/assets/#{asset_id}/streams",
@@ -467,13 +467,38 @@ RSpec.describe SonyCiApi::Client do
           }
         ) do
           # Call the method under test
-          client.asset_stream_hls_url(asset_id)
+          client.asset_stream_url(asset_id, type: stream_type)
         end
       }
 
-      it 'returns an HLS streaming URL for a given asset' do
-        expect(asset_stream_hls_url).to eq streaming_url
+      context 'when type=hls' do
+        let(:stream_type) { 'hls' }
+        it 'returns an HLS streaming URL for a given asset' do
+          expect(asset_stream_url).to eq streaming_url
+        end
       end
+
+      context 'when type=sd' do
+        let(:stream_type) { 'video-sd' }
+        it 'returns an SD streaming URL for a given asset' do
+          expect(asset_stream_url).to eq streaming_url
+        end
+      end
+
+      context 'when type=3g' do
+        let(:stream_type) { 'video-3g' }
+        it 'returns an 3G streaming URL for a given asset' do
+          expect(asset_stream_url).to eq streaming_url
+        end
+      end
+
+      context 'when type is invalid' do
+        let(:stream_type) { 'something_invalid' }
+        it 'raises an ArgumentError' do
+          expect { asset_stream_url }.to raise_error ArgumentError
+        end
+      end
+
     end
   end
 

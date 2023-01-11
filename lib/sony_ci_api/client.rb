@@ -144,11 +144,13 @@ module SonyCiApi
       get "/assets/#{asset_id}/download"
     end
 
-    def asset_stream_hls_url(asset_id)
+    def asset_stream_url(asset_id, type: "hls")
+      type = type.downcase
+      raise ArgumentError, "Invalid value for parameter type. Expected one of hls, video-3g, or video-sd, but '#{type}' was given" unless %w(hls video-3g video-sd).include?(type)
       stream_name = "#{asset_id}-stream"
       expire_date = DateTime.now.next_day.iso8601
       resp = post("/assets/#{asset_id}/streams", params: { streams: [ {name: stream_name, expirationDate: expire_date } ] }, headers: { "Content-Type" => "application/json" })
-      resp["complete"].first["streams"].find {|s| s["type"] == "hls" }["url"] if resp && resp["complete"]
+      resp["complete"].first["streams"].find {|s| s["type"] == type }["url"] if resp && resp["complete"]
     end
 
     def workspace_contents( workspace_id = self.workspace_id, **params )
