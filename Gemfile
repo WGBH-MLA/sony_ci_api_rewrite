@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 source "https://rubygems.org"
 
 # Specify your gem's dependencies insony_ci_api.gemspec

@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 RSpec.describe SonyCiApi::Error do
   describe '.create_from' do
     context 'for rando errors that we have not explicitly mapped' do
@@ -10,19 +12,19 @@ RSpec.describe SonyCiApi::Error do
     context 'with Faraday errors' do
       let(:expected_mappings) {
         {
-          Faraday::ClientError               => SonyCiApi::ClientError,
-          Faraday::BadRequestError           => SonyCiApi::BadRequestError,
-          Faraday::UnauthorizedError         => SonyCiApi::UnauthorizedError,
-          Faraday::ForbiddenError            => SonyCiApi::ForbiddenError,
-          Faraday::ResourceNotFound          => SonyCiApi::NotFoundError,
-          Faraday::ProxyAuthError            => SonyCiApi::ProxyAuthError,
-          Faraday::ConflictError             => SonyCiApi::ConflictError,
-          Faraday::UnprocessableEntityError  => SonyCiApi::UnprocessableEntityError,
-          Faraday::ServerError               => SonyCiApi::ServerError,
-          Faraday::TimeoutError              => SonyCiApi::TimeoutError,
-          Faraday::NilStatusError            => SonyCiApi::NilStatusError,
-          Faraday::ConnectionFailed          => SonyCiApi::ConnectionFailed,
-          Faraday::SSLError                  => SonyCiApi::SSLError
+          Faraday::ClientError => SonyCiApi::ClientError,
+          Faraday::BadRequestError => SonyCiApi::BadRequestError,
+          Faraday::UnauthorizedError => SonyCiApi::UnauthorizedError,
+          Faraday::ForbiddenError => SonyCiApi::ForbiddenError,
+          Faraday::ResourceNotFound => SonyCiApi::NotFoundError,
+          Faraday::ProxyAuthError => SonyCiApi::ProxyAuthError,
+          Faraday::ConflictError => SonyCiApi::ConflictError,
+          Faraday::UnprocessableEntityError => SonyCiApi::UnprocessableEntityError,
+          Faraday::ServerError => SonyCiApi::ServerError,
+          Faraday::TimeoutError => SonyCiApi::TimeoutError,
+          Faraday::NilStatusError => SonyCiApi::NilStatusError,
+          Faraday::ConnectionFailed => SonyCiApi::ConnectionFailed,
+          Faraday::SSLError => SonyCiApi::SSLError
         }
       }
 

@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 module SonyCiApi
   class Error < StandardError
     # Creates a new Error instance, with optional :from_error as the original
@@ -24,6 +26,7 @@ module SonyCiApi
     def from_error(*args)
       return nil if @from_error.nil?
       return @from_error if args.empty?
+
       method = args.shift
       @from_error.send(method, *args)
     end
@@ -43,29 +46,30 @@ module SonyCiApi
       # If the error is not explicitly mapped in error_class_map, returns an
       # instance of the SonyCiApi::Error.
       def create_from(error)
-        error_class_map.fetch(error.class) do |klass|
+        error_class_map.fetch(error.class) do |_klass|
           self
         end.new(from_error: error)
       end
 
       private
-        def error_class_map
-          @error_class_map ||= {
-            Faraday::ClientError               => ClientError,
-            Faraday::BadRequestError           => BadRequestError,
-            Faraday::UnauthorizedError         => UnauthorizedError,
-            Faraday::ForbiddenError            => ForbiddenError,
-            Faraday::ResourceNotFound          => NotFoundError,
-            Faraday::ProxyAuthError            => ProxyAuthError,
-            Faraday::ConflictError             => ConflictError,
-            Faraday::UnprocessableEntityError  => UnprocessableEntityError,
-            Faraday::ServerError               => ServerError,
-            Faraday::TimeoutError              => TimeoutError,
-            Faraday::NilStatusError            => NilStatusError,
-            Faraday::ConnectionFailed          => ConnectionFailed,
-            Faraday::SSLError                  => SSLError
-          }
-        end
+
+      def error_class_map
+        @error_class_map ||= {
+          Faraday::ClientError => ClientError,
+          Faraday::BadRequestError => BadRequestError,
+          Faraday::UnauthorizedError => UnauthorizedError,
+          Faraday::ForbiddenError => ForbiddenError,
+          Faraday::ResourceNotFound => NotFoundError,
+          Faraday::ProxyAuthError => ProxyAuthError,
+          Faraday::ConflictError => ConflictError,
+          Faraday::UnprocessableEntityError => UnprocessableEntityError,
+          Faraday::ServerError => ServerError,
+          Faraday::TimeoutError => TimeoutError,
+          Faraday::NilStatusError => NilStatusError,
+          Faraday::ConnectionFailed => ConnectionFailed,
+          Faraday::SSLError => SSLError
+        }
+      end
     end
   end
 
@@ -98,18 +102,18 @@ module SonyCiApi
 
     private
 
-      # Returns the @from_error if it's a Faraday::Error; else returns nil
-      def faraday_error
-        @faraday_error ||= from_error if from_error.is_a? Faraday::Error
-      end
+    # Returns the @from_error if it's a Faraday::Error; else returns nil
+    def faraday_error
+      @faraday_error ||= from_error if from_error.is_a? Faraday::Error
+    end
 
-      def request
-        faraday_error.request if faraday_error.respond_to?(:request)
-      end
+    def request
+      faraday_error.request if faraday_error.respond_to?(:request)
+    end
 
-      def response
-        faraday_error.response if faraday_error.respond_to?(:response)
-      end
+    def response
+      faraday_error.response if faraday_error.respond_to?(:response)
+    end
   end
 
   # HttpError base class for wrapping HTTP errors returned from Sony Ci API.
