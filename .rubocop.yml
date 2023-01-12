@@ -1,4 +1,5 @@
 AllCops:
+  TargetRubyVersion: 2.4+
   DisplayCopNames: true
   Exclude:
     - 'db/**/*.rb'
@@ -32,6 +33,10 @@ Style/Documentation:
 # New Disables
 Layout/LineLength:
   Enabled: false
+
+Metrics/BlockLength:
+  Max: 50
+  IgnoredMethods: ['describe', 'context']
 
 Metrics/MethodLength:
   Enabled: false
@@ -91,6 +96,9 @@ Style/ClassAndModuleChildren:
 Style/GuardClause:
   Exclude:
     - 'spec/support/remote_ip_monkey_patch.rb'
+
+Lint/DuplicateMethods:
+  Enabled: false
 
 # Offense count: 2
 Lint/ShadowingOuterLocalVariable:

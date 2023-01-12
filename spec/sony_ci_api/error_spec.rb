@@ -32,7 +32,7 @@ RSpec.describe SonyCiApi::Error do
         expected_mappings.each do |faraday_error_class, expected_error_class|
           # Create an instance of the Faraday error class. Use nil message and
           # empty response because we don't need those, but Faraday classes do.
-          faraday_error = faraday_error_class.new(nil, {})
+          faraday_error_class.new(nil, {})
           new_error = described_class.create_from(faraday_error_class.new(nil, {}))
           expect(new_error).to be_a expected_error_class
         end

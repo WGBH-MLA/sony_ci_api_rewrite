@@ -19,6 +19,20 @@ def stub_request_and_call_block(http_method, path, with: {}, stub_response: {})
   return_val
 end
 
+# Create some dummy class available in a global scope that can be
+# recognized by ERB within SonyCiApi::Client#load_config!
+class TestCredentials
+  def self.config_hash
+    @config_hash ||= {
+      username: rand(9999).to_s,
+      password: rand(9999).to_s,
+      workspace_id: rand(9999).to_s,
+      client_id: rand(9999).to_s,
+      client_secret: rand(9999).to_s
+    }
+  end
+end
+
 RSpec.describe SonyCiApi::Client do
   def randhex(len = 32)
     len.times.map { rand(15).to_s(16) }.join
@@ -530,20 +544,6 @@ RSpec.describe SonyCiApi::Client do
       valid_config_file.write(config_hash.to_yaml) && valid_config_file.rewind
       valid_config_file_erb.write(config_hash_with_erb.to_yaml) && valid_config_file_erb.rewind
       invalid_config_file.write(':') && invalid_config_file.rewind
-
-      # Create some dummy class available in a global scope that can be
-      # recognized by ERB within SonyCiApi::Client#load_config!
-      class TestCredentials
-        def self.config_hash
-          @config_hash ||= {
-            username: rand(9999).to_s,
-            password: rand(9999).to_s,
-            workspace_id: rand(9999).to_s,
-            client_id: rand(9999).to_s,
-            client_secret: rand(9999).to_s
-          }
-        end
-      end
     end
 
     after do
