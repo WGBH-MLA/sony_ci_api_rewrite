@@ -31,16 +31,6 @@ class TestCredentials
       client_secret: rand(9999).to_s
     }
   end
-
-  def self.clear
-    @config_hash = {
-      username: '',
-      password: '',
-      workspace_id: '',
-      client_id: '',
-      client_secret: ''
-    }
-  end
 end
 
 RSpec.describe SonyCiApi::Client do
@@ -561,9 +551,6 @@ RSpec.describe SonyCiApi::Client do
       valid_config_file.close && valid_config_file.unlink
       valid_config_file_erb.close && valid_config_file_erb.unlink
       invalid_config_file.close && invalid_config_file.unlink
-
-      # Destroy our FakeCredentials object.
-      TestCredentials.clear
     end
 
     context 'with a valid YAML config file' do
