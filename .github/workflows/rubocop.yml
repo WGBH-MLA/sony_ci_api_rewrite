@@ -1,0 +1,24 @@
+name: 🚓 Rubocop
+on:
+  workflow_call:
+
+jobs:
+  rubocop:
+    name: 🤖 Check code style with Rubocop
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 📰 Checkout code
+        uses: actions/checkout@v3
+
+      - name: 💎 Setup Ruby and install RubyGems
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: 3.2
+          bundler-cache: true
+
+      - name: 🚔 Install rubocop
+        run: gem install rubocop
+
+      - name: 👮 Run Rubocop code analyzer and Formatter
+        run: rubocop -D

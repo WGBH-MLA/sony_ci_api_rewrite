@@ -1,0 +1,21 @@
+name: 📋 Specs
+on:
+  workflow_call:
+
+jobs:
+  specs:
+    name: 📋 Run Specs
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 📰 Checkout code
+        uses: actions/checkout@v3
+
+      - name: 💎 Setup Ruby and install RubyGems
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: 3.2
+          bundler-cache: true
+
+      - name: ✔️ Run Rspec specs using CI config
+        run: bundle exec rspec --tag ~not_on_travis

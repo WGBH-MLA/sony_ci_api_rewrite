@@ -1,0 +1,12 @@
+name: 🧪 CI Tests
+
+on: [push, pull_request]
+
+jobs:
+  specs:
+    name: 📋 Specs
+    uses: ./.github/workflows/specs.yml
+
+  format:
+    name: 👮 Formatter
+    uses: ./.github/workflows/rubocop.yml

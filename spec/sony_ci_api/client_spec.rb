@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require 'spec_helper'
 require 'webmock/rspec'
 
@@ -17,15 +19,27 @@ def stub_request_and_call_block(http_method, path, with: {}, stub_response: {})
   return_val
 end
 
+# Create some dummy class available in a global scope that can be
+# recognized by ERB within SonyCiApi::Client#load_config!
+class TestCredentials
+  def self.config_hash
+    @config_hash ||= {
+      username: rand(9999).to_s,
+      password: rand(9999).to_s,
+      workspace_id: rand(9999).to_s,
+      client_id: rand(9999).to_s,
+      client_secret: rand(9999).to_s
+    }
+  end
+end
 
 RSpec.describe SonyCiApi::Client do
-
-  def randhex(len=32)
+  def randhex(len = 32)
     len.times.map { rand(15).to_s(16) }.join
   end
 
-  def randstr(len=6)
-    @chars ||= [ ('a'..'z').to_a, ('A'..'Z').to_a, ('0'..'9').to_a ].flatten
+  def randstr(len = 6)
+    @chars ||= [('a'..'z').to_a, ('A'..'Z').to_a, ('0'..'9').to_a].flatten
     Array.new(len.to_i) { @chars.sample }.join
   end
 
@@ -43,16 +57,14 @@ RSpec.describe SonyCiApi::Client do
     }
   }
 
-
   RSpec.shared_examples 'HTTP request method' do |http_method:|
-
     let(:response_status) { 200 }
     let(:response_body) { { "fooBarResponse" => randstr } }
     let(:request_params) {
       { "fooBar" => randstr }
     }
     let(:request_params_underscored) {
-      Hash[ request_params.map { |k, v| [ k.camelize, v ] } ]
+      request_params.transform_keys(&:camelize)
     }
     let(:payload) {
       case http_method
@@ -72,22 +84,20 @@ RSpec.describe SonyCiApi::Client do
         "#{base_url}/foo/bar",
         with: {
           headers: headers_with_bearer_auth.merge({
-            'Foo-Header' => 'foo/header'
-          })
+                                                    'Foo-Header' => 'foo/header'
+                                                  })
         }.merge(payload),
         stub_response: {
           status: response_status,
-          body: response_body.to_json,
+          body: response_body.to_json
         }
       ) do
         client.send(http_method,
-          "foo/bar",
-          params: request_params_underscored,
-          headers: { foo_header: "foo/header" }
-        )
+                    "foo/bar",
+                    params: request_params_underscored,
+                    headers: { foo_header: "foo/header" })
       end
     }
-
 
     it "makes the #{http_method} request" do
       expect(return_val).to eq response_body
@@ -103,10 +113,10 @@ RSpec.describe SonyCiApi::Client do
   let(:client_secret) { randstr }
 
   let(:client) {
-    described_class.new( username: username,
-                         password: password,
-                         client_id: client_id,
-                         client_secret: client_secret )
+    described_class.new(username: username,
+                        password: password,
+                        client_id: client_id,
+                        client_secret: client_secret)
   }
 
   # Request params for authentication request
@@ -114,8 +124,8 @@ RSpec.describe SonyCiApi::Client do
   let(:response_body) { { "fooBarResponse" => randstr } }
   let(:headers_with_basic_auth) {
     always_headers.merge({
-      'Authorization' => "Basic #{encoded_username_and_password}"
-    })
+                           'Authorization' => "Basic #{encoded_username_and_password}"
+                         })
   }
   let(:response_status) { 200 }
 
@@ -141,7 +151,6 @@ RSpec.describe SonyCiApi::Client do
       end
     end
 
-
     it 'fetches the access token for use in subsequent requests' do
       expect(access_token).to eq mock_access_token
     end
@@ -152,12 +161,11 @@ RSpec.describe SonyCiApi::Client do
 
     let(:headers_with_bearer_auth) {
       always_headers.merge({
-        "Authorization" => "Bearer #{mock_access_token}"
-      })
+                             "Authorization" => "Bearer #{mock_access_token}"
+                           })
     }
 
     describe '#get' do
-
       # Run shared spec to simply test the
       it_behaves_like 'HTTP request method', http_method: :delete
 
@@ -172,12 +180,12 @@ RSpec.describe SonyCiApi::Client do
           with: {
             query: { "fooBar" => "bar" },
             headers: headers_with_bearer_auth.merge({
-              'Foo-Header' => 'foo/header'
-            })
+                                                      'Foo-Header' => 'foo/header'
+                                                    })
           },
           stub_response: {
             status: response_status,
-            body: response_body.to_json,
+            body: response_body.to_json
           }
         ) do
           client.get(
@@ -299,10 +307,12 @@ RSpec.describe SonyCiApi::Client do
     describe 'workspaces' do
       # In reality, the hashes representing workspaces are much more extensive.
       # For testing we can use a minimal and arbitrary data structure.
-      let(:expected_workspaces) { [
+      let(:expected_workspaces) {
+        [
           { "id" => "foo", "name" => "Foo Workspace" },
           { "id" => "bar", "name" => "Bar Workspace" }
-      ] }
+        ]
+      }
 
       let(:actual_workspaces) {
         stub_request_and_call_block(
@@ -327,12 +337,14 @@ RSpec.describe SonyCiApi::Client do
 
     describe '#workspace_search' do
       let(:workspace_id) { randhex }
-      let(:params) { { query: '', kind: '', limit: '', offset: '', order_by: '',
-                       order_direction: '', fields: '' } }
+      let(:params) {
+        { query: '', kind: '', limit: '', offset: '', order_by: '',
+          order_direction: '', fields: '' }
+      }
       let(:response_body) {
         {
           'items' => [
-            { 'name' => 'foo'},
+            { 'name' => 'foo' },
             { 'name' => 'bar' }
           ]
         }
@@ -347,7 +359,7 @@ RSpec.describe SonyCiApi::Client do
           :get,
           "#{base_url}/workspaces/#{workspace_id}/search",
           with: {
-            query: camelize_params(params)
+            query: camelize_params(**params)
           },
           stub_response: {
             body: response_body.to_json,
@@ -433,7 +445,7 @@ RSpec.describe SonyCiApi::Client do
 
     describe '#asset_streams' do
       let(:asset_id) { randhex }
-      let(:streaming_url) { "http://io.api.cimediacloud.com/assets/#{asset_id}/streams/smil_md5hash.m3u8"}
+      let(:streaming_url) { "http://io.api.cimediacloud.com/assets/#{asset_id}/streams/smil_md5hash.m3u8" }
       let(:request_body) { {} }
       let(:response_body) {
         {
@@ -498,29 +510,28 @@ RSpec.describe SonyCiApi::Client do
           expect { asset_stream_url }.to raise_error ArgumentError
         end
       end
-
     end
   end
 
   describe '#load_config!' do
     let(:config_hash) {
       {
-        username: randstr,
-        password: randstr,
-        workspace_id: randhex,
-        client_id: randhex,
-        client_secret: randhex
-      }.with_indifferent_access
+        "username" => randstr,
+        "password" => randstr,
+        "workspace_id" => randhex,
+        "client_id" => randhex,
+        "client_secret" => randhex
+      }
     }
 
     let(:config_hash_with_erb) {
       {
-        username: "<%= TestCredentials.config_hash[:username] %>",
-        password: "<%= TestCredentials.config_hash[:password] %>",
-        workspace_id: "<%= TestCredentials.config_hash[:workspace_id] %>",
-        client_id: "<%= TestCredentials.config_hash[:client_id] %>",
-        client_secret: "<%= TestCredentials.config_hash[:client_secret] %>"
-      }.with_indifferent_access
+        "username" => "<%= TestCredentials.config_hash[:username] %>",
+        "password" => "<%= TestCredentials.config_hash[:password] %>",
+        "workspace_id" => "<%= TestCredentials.config_hash[:workspace_id] %>",
+        "client_id" => "<%= TestCredentials.config_hash[:client_id] %>",
+        "client_secret" => "<%= TestCredentials.config_hash[:client_secret] %>"
+      }
     }
 
     # Create some temp files for use in the specs.
@@ -533,20 +544,6 @@ RSpec.describe SonyCiApi::Client do
       valid_config_file.write(config_hash.to_yaml) && valid_config_file.rewind
       valid_config_file_erb.write(config_hash_with_erb.to_yaml) && valid_config_file_erb.rewind
       invalid_config_file.write(':') && invalid_config_file.rewind
-
-      # Create some dummy class available in a global scope that can be
-      # recognized by ERB within SonyCiApi::Client#load_config!
-      class TestCredentials
-        def self.config_hash
-          @config_hash ||= {
-            username: rand(9999).to_s,
-            password: rand(9999).to_s,
-            workspace_id: rand(9999).to_s,
-            client_id: rand(9999).to_s,
-            client_secret: rand(9999).to_s
-          }.with_indifferent_access
-        end
-      end
     end
 
     after do
@@ -554,29 +551,26 @@ RSpec.describe SonyCiApi::Client do
       valid_config_file.close && valid_config_file.unlink
       valid_config_file_erb.close && valid_config_file_erb.unlink
       invalid_config_file.close && invalid_config_file.unlink
-
-      # Destroy our FakeCredentials object.
-      Object.send(:remove_const, :TestCredentials)
     end
 
     context 'with a valid YAML config file' do
       it 'loads config from the YAML file' do
         expect { client.load_config!(valid_config_file.path) }.not_to raise_error
-        expect(client.config).to eq config_hash
+        expect(client.config).to eq config_hash.with_indifferent_access
       end
     end
 
     context 'with a valid YAML config file that uses ERB' do
       it 'loads config from the YAML file' do
         expect { client.load_config!(valid_config_file_erb.path) }.not_to raise_error
-        expect(client.config).to eq TestCredentials.config_hash
+        expect(client.config).to eq TestCredentials.config_hash.with_indifferent_access
       end
     end
 
     context 'with a config hash' do
       it 'uses the config hash' do
         expect { client.load_config!(config_hash) }.not_to raise_error
-        expect(client.config).to eq config_hash
+        expect(client.config).to eq config_hash.with_indifferent_access
       end
     end
 
@@ -588,7 +582,7 @@ RSpec.describe SonyCiApi::Client do
 
     context 'with things that are not hashes for existing files' do
       it 'raises an InvalidConfigError' do
-        ["not a file", Object.new, 123, Array.new ].each do |invalid_config|
+        ["not a file", Object.new, 123, []].each do |invalid_config|
           expect { client.load_config!(invalid_config) }.to raise_error SonyCiApi::InvalidConfigError
         end
       end

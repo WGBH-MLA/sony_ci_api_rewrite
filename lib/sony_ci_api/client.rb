@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require 'json'
 require 'uri'
 require 'faraday'
@@ -11,8 +13,8 @@ require 'erb'
 
 module SonyCiApi
   class Client
-    BASE_URL = "https://api.cimediacloud.com".freeze
-    BASE_UPLOAD_URL = "https://io.cimediacloud.com".freeze
+    BASE_URL = "https://api.cimediacloud.com"
+    BASE_UPLOAD_URL = "https://io.cimediacloud.com"
 
     attr_reader :config,   # stores the config for the connection, including credentials.
                 :response  # stores the most recent response; default nil
@@ -21,16 +23,16 @@ module SonyCiApi
     # to be set here.
     attr_accessor :workspace_id
 
-    def initialize( config = {} )
+    def initialize(config = {})
       load_config! config
       # Set the default workspace, if present, from the config
       @workspace_id = self.config.delete(:workspace_id)
     end
 
-    def load_config!(config={})
+    def load_config!(config = {})
       if File.exist?(config.to_s)
         template = ERB.new(File.read(config))
-        config_hash = YAML.load(template.result(binding))
+        config_hash = YAML.safe_load(template.result(binding))
       elsif config.is_a? Hash
         config_hash = config
       else
@@ -38,7 +40,7 @@ module SonyCiApi
                              "a Hash, but #{config.class} was given. "
       end
       @config = config_hash.with_indifferent_access
-    rescue Psych::SyntaxError => e
+    rescue Psych::SyntaxError, Psych::DisallowedClass => e
       raise InvalidConfigError, e.message
     end
 
@@ -99,11 +101,11 @@ module SonyCiApi
       get('/workspaces', params: params)['items']
     end
 
-    def workspace_search( workspace_id = self.workspace_id, **params )
+    def workspace_search(workspace_id = self.workspace_id, **params)
       get("/workspaces/#{workspace_id}/search", params: params)['items']
     end
 
-    def webhooks( workspace_id = self.workspace_id, **params)
+    def webhooks(**params)
       get("/networks/#{workspace['network']['id']}/webhooks", params: params)['items']
     end
 
@@ -115,14 +117,15 @@ module SonyCiApi
 
     def workspace
       raise 'You must first set workspace_id' unless workspace_id
+
       @workspace ||= workspaces.detect { |ws| ws['id'] == workspace_id }
     end
 
     def upload(filepath, content_type:)
       with_upload_conn do
         params = {
-          filename: Faraday::FilePart.new( filepath, content_type, nil,
-                                           'Content-Disposition' => 'form-data')
+          filename: Faraday::FilePart.new(filepath, content_type, nil,
+                                          'Content-Disposition' => 'form-data')
         }
         post('/upload', params: params)
       end
@@ -130,6 +133,7 @@ module SonyCiApi
 
     def with_upload_conn
       raise 'block required' unless block_given?
+
       @conn = upload_conn
       yield
     ensure
@@ -146,35 +150,35 @@ module SonyCiApi
 
     def asset_stream_url(asset_id, type: "hls")
       type = type.downcase
-      raise ArgumentError, "Invalid value for parameter type. Expected one of hls, video-3g, or video-sd, but '#{type}' was given" unless %w(hls video-3g video-sd).include?(type)
+      raise ArgumentError, "Invalid value for parameter type. Expected one of hls, video-3g, or video-sd, but '#{type}' was given" unless %w[hls video-3g video-sd].include?(type)
+
       stream_name = "#{asset_id}-stream"
       expire_date = DateTime.now.next_day.iso8601
-      resp = post("/assets/#{asset_id}/streams", params: { streams: [ {name: stream_name, expirationDate: expire_date } ] }, headers: { "Content-Type" => "application/json" })
-      resp["complete"].first["streams"].find {|s| s["type"] == type }["url"] if resp && resp["complete"]
+      resp = post("/assets/#{asset_id}/streams", params: { streams: [{ name: stream_name, expirationDate: expire_date }] }, headers: { "Content-Type" => "application/json" })
+      resp["complete"].first["streams"].find { |s| s["type"] == type }["url"] if resp && resp["complete"]
     end
 
-    def workspace_contents( workspace_id = self.workspace_id, **params )
+    def workspace_contents(workspace_id = self.workspace_id, **params)
       get("/workspaces/#{workspace_id}/contents", params: params)['items']
     end
 
     private
 
-      def send_request(http_method, path, params: {}, headers: {})
-        @response = nil # reset the last response explicitly in case of error.
-        conn.authorization :Bearer, access_token
-        @response = conn.send(http_method, path, camelize_params(params), headers )
-        @response.body
-      rescue => error
-        raise Error.create_from(error)
-      end
-
+    def send_request(http_method, path, params: {}, headers: {})
+      @response = nil # reset the last response explicitly in case of error.
+      conn.authorization :Bearer, access_token
+      @response = conn.send(http_method, path, camelize_params(**params), headers)
+      @response.body
+    rescue StandardError => e
+      raise Error.create_from(e)
+    end
 
     # Class methods
     class << self
       # Converts a params hash (with symbol keys that have underscores) to
       # a param hash where the keys are strings, and lower-camelcase, like the
       # Sony Ci API expects.
-      def camelize_params(params={})
+      def camelize_params(**params)
         params.transform_keys { |key| key.to_s.camelize(:lower) }
       end
     end

@@ -1,0 +1,154 @@
+AllCops:
+  TargetRubyVersion: 2.4+
+  DisplayCopNames: true
+  Exclude:
+    - 'db/**/*.rb'
+    - 'vendor/**/*'
+    - 'lib/wp_data.rb'
+    - 'app/models/search_builder.rb'
+    - 'app/assets/stylesheets/timeline.css'
+    # ignoring until we can sort out ruby parser version issue with rubocop (defaults to 2.0 parser, but newer parser versions show 400+ violations)
+    - 'app/models/exhibit.rb'
+    - 'app/helpers/snippet_helper.rb'
+    - 'app/controllers/snippets_controller.rb'
+    - 'app/models/link_exhibit.rb'
+
+Metrics/ClassLength:
+  Enabled: false
+
+Style/RegexpLiteral:
+  Enabled: false
+
+Style/RaiseArgs:
+  Enabled: false
+
+# method calls on an 'end' after a block
+# we do this a lot, so leaving it
+Style/MultilineBlockChain:
+  Enabled: false
+
+Style/Documentation:
+  Enabled: false
+
+# New Disables
+Layout/LineLength:
+  Enabled: false
+
+Metrics/BlockLength:
+  Max: 50
+  IgnoredMethods: ['describe', 'context']
+
+Metrics/MethodLength:
+  Enabled: false
+
+# Style/AlignHash:
+#   Enabled: false
+
+Style/HashSyntax:
+  Enabled: false
+
+Style/LineEndConcatenation:
+  Enabled: false
+
+Style/StringLiterals:
+  Enabled: false
+
+# Style/IndentArray:
+#   Enabled: false
+
+Layout/SpaceInsideStringInterpolation:
+  Enabled: false
+
+# agree with the style for this one, but using && in a controller:
+# redirect_to '/' && return unless @document
+# redirect_to '/' and return unless @document
+# does not result in a redirect
+Style/AndOr:
+  Enabled: false
+
+Layout/EndAlignment:
+  Enabled: false
+
+# this was set with a gigantic maximum.... so disabling
+Metrics/AbcSize:
+  Enabled: false
+
+# got a lotta these
+Style/GlobalVars:
+  Enabled: false
+
+# too opinionated
+# Offense count: 12
+Metrics/CyclomaticComplexity:
+  Enabled: false
+
+# Leaving these for now, not sure if this is a problem
+# Offense count: 10
+Metrics/PerceivedComplexity:
+  Max: 20
+
+Style/ClassAndModuleChildren:
+  Exclude:
+    - 'config/environment.rb'
+
+# Offense count: 1
+# Configuration parameters: MinBodyLength.
+Style/GuardClause:
+  Exclude:
+    - 'spec/support/remote_ip_monkey_patch.rb'
+
+Lint/DuplicateMethods:
+  Enabled: false
+
+# Offense count: 2
+Lint/ShadowingOuterLocalVariable:
+  Exclude:
+    - 'config/environment.rb'
+
+# assuming theres some reason for this one
+# Offense count: 1
+# Configuration parameters: AllowSafeAssignment.
+Lint/AssignmentInCondition:
+  Exclude:
+    - 'bin/spring'
+
+# good security reason for cop, but apparently useful in this context?
+# Offense count: 1
+Security/Eval:
+  Exclude:
+    - 'app/controllers/api_controller.rb'
+
+# outta the box
+# Offense count: 2
+Lint/SuppressedException:
+  Exclude:
+    - 'bin/rails'
+    - 'bin/rake'
+
+# Offense count: 1
+Lint/UselessAssignment:
+  Exclude:
+    - 'config/environment.rb'
+
+Lint/IneffectiveAccessModifier:
+  Exclude:
+    - 'app/models/featured.rb'
+    - 'scripts/lib/cleaner.rb'
+
+# Offense count: 1
+Style/AsciiComments:
+  Exclude:
+    - 'spec/lib/markdown_spec.rb'
+
+# Disable this. str.downcase != other_str is fine and clearer than
+# str.casecmp(other_str) != 0 with very minimal performance hit.
+# Performance/Casecmp:
+#   Enabled: false
+
+# Use judgement. Using {...} delimiters for multi-line is considered OK if
+# the block returns something as opposed having some kind of side effect, e.g.
+# For example, #map can use {...} even when multiline.
+# Also, some innocent method chaining appended to a do...end block is sometimes
+# clearer than the alternative.
+Style/BlockDelimiters:
+  Enabled: false
