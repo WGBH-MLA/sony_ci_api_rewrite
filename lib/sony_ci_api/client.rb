@@ -148,6 +148,10 @@ module SonyCiApi
       get "/assets/#{asset_id}/download"
     end
 
+    def move_assets(asset_ids: [], folder_id:)
+      post "/assets/move", params: { assetIds: asset_ids, folderId: folder_id }
+    end
+
     def asset_stream_url(asset_id, type: "hls")
       type = type.downcase
       raise ArgumentError, "Invalid value for parameter type. Expected one of hls, video-3g, or video-sd, but '#{type}' was given" unless %w[hls video-3g video-sd].include?(type)

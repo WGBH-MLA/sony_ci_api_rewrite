@@ -167,7 +167,7 @@ RSpec.describe SonyCiApi::Client do
 
     describe '#get' do
       # Run shared spec to simply test the
-      it_behaves_like 'HTTP request method', http_method: :delete
+      it_behaves_like 'HTTP request method', http_method: :get
 
       let(:response_status) { 200 }
       let(:response_body) { { "fooBarResponse" => randstr } }
@@ -442,6 +442,43 @@ RSpec.describe SonyCiApi::Client do
         expect(asset_download_info).to eq response_body
       end
     end
+
+    describe '#asset_move' do
+      let(:asset_ids) { 5.times.map { randhex } }
+      let(:folder_id) { randhex}
+      # Pared down response body. In reality it's much bigger.
+      let(:response_body) {
+        {
+          "completeCount" => asset_ids.count,
+          "errorCount" => 0
+        }
+      }
+
+      let(:asset_download_info) {
+        stub_request_and_call_block(
+          :post,
+          "#{base_url}/assets/move",
+          with: {
+            body: {
+              "assetIds": asset_ids,
+              "folderId": folder_id
+            }
+          },
+          stub_response: {
+            body: response_body.to_json,
+            status: 200
+          }
+        ) do
+          # Call the method under test
+          client.move_assets(asset_ids: asset_ids, folder_id: folder_id)
+        end
+      }
+
+      it 'returns download information for an asset' do
+        expect(asset_download_info).to eq response_body
+      end
+    end
+
 
     describe '#asset_streams' do
       let(:asset_id) { randhex }
