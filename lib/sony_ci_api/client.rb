@@ -166,6 +166,10 @@ module SonyCiApi
       get("/workspaces/#{workspace_id}/contents", params: params)['items']
     end
 
+    def folder_contents(folder_id, **params)
+      get("/folders/#{folder_id}/contents", params: params)['items']
+    end
+
     private
 
     def send_request(http_method, path, params: {}, headers: {})

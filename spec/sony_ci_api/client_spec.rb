@@ -479,7 +479,6 @@ RSpec.describe SonyCiApi::Client do
       end
     end
 
-
     describe '#asset_streams' do
       let(:asset_id) { randhex }
       let(:streaming_url) { "http://io.api.cimediacloud.com/assets/#{asset_id}/streams/smil_md5hash.m3u8" }
@@ -546,6 +545,34 @@ RSpec.describe SonyCiApi::Client do
         it 'raises an ArgumentError' do
           expect { asset_stream_url }.to raise_error ArgumentError
         end
+      end
+    end
+
+    describe '#folder_contents' do
+      let(:folder_id) { randhex}
+      # Pared down response body. In reality it's much bigger.
+      let(:response_body) {
+        {
+          "items" => [{ "id" => randhex }],
+        }
+      }
+
+      let(:call_to_folder_contents) {
+        stub_request_and_call_block(
+          :get,
+          "#{base_url}/folders/#{folder_id}/contents",
+          stub_response: {
+            body: response_body.to_json,
+            status: 200
+          }
+        ) do
+          # Call the method under test
+          client.folder_contents(folder_id)
+        end
+      }
+
+      it 'returns download information for an asset' do
+        expect(call_to_folder_contents).to eq response_body['items']
       end
     end
   end
