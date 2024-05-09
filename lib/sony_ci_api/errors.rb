@@ -141,4 +141,5 @@ module SonyCiApi
 
   # Other errors not associated with HTTP.
   class InvalidConfigError < Error; end
+  class MaxRecursionError < Error; end
 end

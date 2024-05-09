@@ -15,6 +15,7 @@ module SonyCiApi
   class Client
     BASE_URL = "https://api.cimediacloud.com"
     BASE_UPLOAD_URL = "https://io.cimediacloud.com"
+    MAX_RECURSION = 3
 
     attr_reader :config,   # stores the config for the connection, including credentials.
                 :response  # stores the most recent response; default nil
@@ -168,6 +169,17 @@ module SonyCiApi
 
     def folder_contents(folder_id, **params)
       get("/folders/#{folder_id}/contents", params: params)['items']
+    end
+
+    def folder_contents_r(folder_id, recursion_level=0, **params)
+      raise MaxRecursionError, "MAX_RECURSIION level #{MAX_RECURSION} exceeded" if recursion_level >= MAX_RECURSION
+      contents = folder_contents(folder_id, **params)
+
+      contents.each do |item|
+        if item['kind'].downcase == 'folder'
+          item['contents'] = folder_contents_r(item['id'], recursion_level + 1, **params)
+        end
+      end
     end
 
     private
