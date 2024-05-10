@@ -15,7 +15,15 @@ module SonyCiApi
   class Client
     BASE_URL = "https://api.cimediacloud.com"
     BASE_UPLOAD_URL = "https://io.cimediacloud.com"
+    
+    # Some API endpoints require recursion, like fetching nested folder contents.
+    # MAX_RECURSION sets the max recursion depth to avoid accidental API abuse.
     MAX_RECURSION = 3
+
+    # API endpoints that returns a list from the 'items' property tend to also have pagination params 'limit' and 'offset'.
+    MAX_ITEMS_PER_PAGE = 100
+    MAX_PAGES = 1000
+    MAX_ITEMS = MAX_ITEMS_PER_PAGE * MAX_PAGES
 
     attr_reader :config,   # stores the config for the connection, including credentials.
                 :response  # stores the most recent response; default nil
@@ -102,16 +110,62 @@ module SonyCiApi
       end
     end
 
+
+    # Returns the 'items' property of the response fetching multiple pages as necessary.
+    def get_items(path, params: {}, headers: {})
+      all_items = []
+      paginate_params(params).map do |paginated_params|
+
+        puts "paginated_params = #{paginated_params}"
+
+        results = get(path, params: paginated_params, headers: headers).fetch('items', [])
+        all_items += results
+        # If the results are fewer than the page count that means we asked for more pages than
+        # we actually have, so break early to avoid extraneous API requests.
+        break if results.count < paginated_params[:limit]
+      end
+      all_items
+    end
+
+
+    def paginate_params(params={})
+      params = params.with_indifferent_access
+      limit = params.delete(:limit) || MAX_ITEMS_PER_PAGE
+      offset = params.delete(:offset) || 0
+      # Calculate the number of pages we need to request to get the full limit
+      pages = (((limit - 1) / MAX_ITEMS_PER_PAGE) + 1)
+
+      # Page the number of pages to a list of param hashes with pagination
+      # values for limit and offset
+      pages.times.map do |page|
+        this_page_size = [limit - (page * MAX_ITEMS_PER_PAGE), MAX_ITEMS_PER_PAGE].min
+        this_offest = offset + (page * MAX_ITEMS_PER_PAGE)
+        params.merge(limit: this_page_size, offset: this_offest)
+      end
+    end
+
     def workspaces(**params)
-      get('/workspaces', params: params)['items']
+      get_items('/workspaces', params: params)
     end
 
     def workspace_search(workspace_id = self.workspace_id, **params)
-      get("/workspaces/#{workspace_id}/search", params: params)['items']
+      get_items("/workspaces/#{workspace_id}/search", params: params)
+    end
+
+    # Returns an item whose name matches the `name` parameter.
+    # NOTE: The Sony Ci API does not boost the relevance of a search results
+    # if the name matches exactly, so we use MAX_ITEMS when doing the search
+    # to make sure we're checking all hits for the item. This may result
+    # in mulitple API calls.
+    def find_by_name(name, **params)
+      params.merge!(query: name, limit: MAX_ITEMS)
+      items = workspace_search(**params).select { |item| item['name'] == name }
+      raise "#{items.count} items found with name '#{name}'" if items.count > 1
+      items.first
     end
 
     def webhooks(**params)
-      get("/networks/#{workspace['network']['id']}/webhooks", params: params)['items']
+      get_items("/networks/#{workspace['network']['id']}/webhooks", params: params)
     end
 
     def workspace_id=(wid)
@@ -168,12 +222,18 @@ module SonyCiApi
     end
 
     def workspace_contents(workspace_id = self.workspace_id, **params)
-      get("/workspaces/#{workspace_id}/contents", params: params)['items']
+      get_items("/workspaces/#{workspace_id}/contents", params: params.merge(limit: MAX_ITEMS))
+    end
+
+    def folder(folder_id)
+      get "/folders/#{folder_id}"
     end
 
     def folder_contents(folder_id, **params)
-      get("/folders/#{folder_id}/contents", params: params)['items']
+      # Use very large limit to be sure we get everything.
+      get_items("/folders/#{folder_id}/contents", params: params.merge(limit: MAX_ITEMS))
     end
+
 
     def folder_contents_r(folder_id, recursion_level=0, **params)
       raise MaxRecursionError, "MAX_RECURSIION level #{MAX_RECURSION} exceeded" if recursion_level >= MAX_RECURSION
