@@ -37,8 +37,12 @@ module SonyCiApi
       elsif config.is_a? Hash
         config_hash = config
       else
-        raise InvalidConfigError, "config is expected to be a valid YAML file or " \
-                             "a Hash, but #{config.class} was given. "
+        msg = if config.is_a? String
+          "config file '#{config}' does not exist."
+        else
+          "config is expected to be a valid YAML file or a Hash, but #{config.class} was given. "
+        end
+        raise InvalidConfigError, msg
       end
       @config = config_hash.with_indifferent_access
     rescue Psych::SyntaxError, Psych::DisallowedClass => e
