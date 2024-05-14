@@ -18,7 +18,7 @@ module SonyCiApi
     
     # Some API endpoints require recursion, like fetching nested folder contents.
     # MAX_RECURSION sets the max recursion depth to avoid accidental API abuse.
-    MAX_RECURSION = 3
+    MAX_RECURSION = 5
 
     # API endpoints that returns a list from the 'items' property tend to also have pagination params 'limit' and 'offset'.
     MAX_ITEMS_PER_PAGE = 100
@@ -155,13 +155,12 @@ module SonyCiApi
     end
 
     # Returns an item whose name matches the `name` parameter.
-    # NOTE: The Sony Ci API does not boost the relevance of a search results
-    # if the name matches exactly, so we use MAX_ITEMS when doing the search
-    # to make sure we're checking all hits for the item. This may result
-    # in mulitple API calls.
+    # NOTE: This alls faceted_search with limit: 1, so it assumes
+    # tha /faceted-search endpoing will return an exact match
+    # on the name.
     def find_by_name(name, **params)
-      params.merge!(query: name, limit: MAX_ITEMS)
-      items = workspace_search(**params).select { |item| item['name'] == name }
+      params.merge!(query: name, limit: 1)
+      items = faceted_search(**params).select { |item| item['name'] == name }
       raise "#{items.count} items found with name '#{name}'" if items.count > 1
       items.first
     end
@@ -231,19 +230,20 @@ module SonyCiApi
       get "/folders/#{folder_id}"
     end
 
-    def folder_contents(folder_id, **params)
-      # Use very large limit to be sure we get everything.
-      get_items("/folders/#{folder_id}/contents", params: params.merge(limit: MAX_ITEMS))
-    end
+    def folder_contents(folder_id, depth: MAX_RECURSION, current_depth: 0, **params)
+      raise MaxRecursionError, "MAX_RECURSIION level #{MAX_RECURSION} exceeded" if current_depth >= MAX_RECURSION
+      contents = get_items("/folders/#{folder_id}/contents", params: params.merge(limit: MAX_ITEMS))
 
-
-    def folder_contents_r(folder_id, recursion_level=0, **params)
-      raise MaxRecursionError, "MAX_RECURSIION level #{MAX_RECURSION} exceeded" if recursion_level >= MAX_RECURSION
-      contents = folder_contents(folder_id, **params)
-
-      contents.each do |item|
-        if item['kind'].downcase == 'folder'
-          item['contents'] = folder_contents_r(item['id'], recursion_level + 1, **params)
+      if current_depth < depth
+        contents.each do |item|
+          if item['kind'].downcase == 'folder'
+            item['contents'] = folder_contents(
+              item['id'],
+              depth: depth,
+              current_depth: (current_depth + 1),
+              **params
+            )
+          end
         end
       end
     end
