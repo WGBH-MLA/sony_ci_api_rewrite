@@ -155,11 +155,8 @@ module SonyCiApi
     end
 
     # Returns an item whose name matches the `name` parameter.
-    # NOTE: This alls faceted_search with limit: 1, so it assumes
-    # tha /faceted-search endpoing will return an exact match
-    # on the name.
     def find_by_name(name, **params)
-      params.merge!(query: name, limit: 1)
+      params.merge!(query: name)
       items = faceted_search(**params).select { |item| item['name'] == name }
       raise "#{items.count} items found with name '#{name}'" if items.count > 1
       items.first
