@@ -151,13 +151,16 @@ module SonyCiApi
     end
 
     def faceted_search(**params)
+      # Set workspaceIds to the current workspace as a default.
+      params['workspaceIds'] ||= [workspace_id]
       get_items('/faceted-search', params: params, post: true)
     end
 
     # Returns an item whose name matches the `name` parameter.
     def find_by_name(name, **params)
-      params.merge!(query: name, limit: MAX_ITEMS)
-      items = workspace_search(**params).select { |item| item['name'] == name }
+      raise ArgumentError, "Expected first argument to be a string, but got #{name.class}" unless name.is_a? String
+      params.merge!(query: name, limit: 10)
+      items = faceted_search(**params).select { |item| item['name'] == name }
       raise "#{items.count} items found with name '#{name}'" if items.count > 1
       items.first
     end
