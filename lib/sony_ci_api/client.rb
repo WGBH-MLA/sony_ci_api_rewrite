@@ -112,13 +112,11 @@ module SonyCiApi
 
 
     # Returns the 'items' property of the response fetching multiple pages as necessary.
-    def get_items(path, params: {}, headers: {})
+    def get_items(path, params: {}, headers: {}, post: false)
       all_items = []
       paginate_params(params).map do |paginated_params|
-
-        puts "paginated_params = #{paginated_params}"
-
-        results = get(path, params: paginated_params, headers: headers).fetch('items', [])
+        method = post ? :post : :get
+        results = send(method, path, params: paginated_params, headers: headers).fetch('items', [])
         all_items += results
         # If the results are fewer than the page count that means we asked for more pages than
         # we actually have, so break early to avoid extraneous API requests.
@@ -150,6 +148,10 @@ module SonyCiApi
 
     def workspace_search(workspace_id = self.workspace_id, **params)
       get_items("/workspaces/#{workspace_id}/search", params: params)
+    end
+
+    def faceted_search(**params)
+      get_items('/faceted-search', params: params, post: true)
     end
 
     # Returns an item whose name matches the `name` parameter.
