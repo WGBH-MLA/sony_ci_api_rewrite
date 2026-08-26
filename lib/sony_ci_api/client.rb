@@ -126,21 +126,18 @@ module SonyCiApi
     end
 
 
-    def paginate_params(params={})
-      params = params.with_indifferent_access
-      limit = params.delete(:limit) || MAX_ITEMS_PER_PAGE
-      offset = params.delete(:offset) || 0
-      # Calculate the number of pages we need to request to get the full limit
-      pages = (((limit - 1) / MAX_ITEMS_PER_PAGE) + 1)
+def paginate_params(params={})
+  params = params.with_indifferent_access
+  limit = params.delete(:limit) || MAX_ITEMS_PER_PAGE
+  offset = params.delete(:offset) || 0
+  pages = (((limit - 1) / MAX_ITEMS_PER_PAGE) + 1)
 
-      # Page the number of pages to a list of param hashes with pagination
-      # values for limit and offset
-      pages.times.map do |page|
-        this_page_size = [limit - (page * MAX_ITEMS_PER_PAGE), MAX_ITEMS_PER_PAGE].min
-        this_offest = offset + (page * MAX_ITEMS_PER_PAGE)
-        params.merge(limit: this_page_size, offset: this_offest)
-      end
-    end
+  pages.times.map do |page|
+    this_page_size = [limit - (page * MAX_ITEMS_PER_PAGE), MAX_ITEMS_PER_PAGE].min
+    this_offest = offset + (page * MAX_ITEMS_PER_PAGE)
+    params.merge(limit: this_page_size, offset: this_offest).symbolize_keys
+  end
+end
 
     def workspaces(**params)
       get_items('/workspaces', params: params)
