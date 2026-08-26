@@ -167,7 +167,7 @@ RSpec.describe SonyCiApi::Client do
 
     describe '#get' do
       # Run shared spec to simply test the
-      it_behaves_like 'HTTP request method', http_method: :delete
+      it_behaves_like 'HTTP request method', http_method: :get
 
       let(:response_status) { 200 }
       let(:response_body) { { "fooBarResponse" => randstr } }
@@ -443,6 +443,42 @@ RSpec.describe SonyCiApi::Client do
       end
     end
 
+    describe '#asset_move' do
+      let(:asset_ids) { 5.times.map { randhex } }
+      let(:folder_id) { randhex}
+      # Pared down response body. In reality it's much bigger.
+      let(:response_body) {
+        {
+          "completeCount" => asset_ids.count,
+          "errorCount" => 0
+        }
+      }
+
+      let(:asset_download_info) {
+        stub_request_and_call_block(
+          :post,
+          "#{base_url}/assets/move",
+          with: {
+            body: {
+              "assetIds": asset_ids,
+              "folderId": folder_id
+            }
+          },
+          stub_response: {
+            body: response_body.to_json,
+            status: 200
+          }
+        ) do
+          # Call the method under test
+          client.move_assets(asset_ids: asset_ids, folder_id: folder_id)
+        end
+      }
+
+      it 'returns download information for an asset' do
+        expect(asset_download_info).to eq response_body
+      end
+    end
+
     describe '#asset_streams' do
       let(:asset_id) { randhex }
       let(:streaming_url) { "http://io.api.cimediacloud.com/assets/#{asset_id}/streams/smil_md5hash.m3u8" }
@@ -509,6 +545,34 @@ RSpec.describe SonyCiApi::Client do
         it 'raises an ArgumentError' do
           expect { asset_stream_url }.to raise_error ArgumentError
         end
+      end
+    end
+
+    describe '#folder_contents' do
+      let(:folder_id) { randhex}
+      # Pared down response body. In reality it's much bigger.
+      let(:response_body) {
+        {
+          "items" => [{ "id" => randhex }],
+        }
+      }
+
+      let(:call_to_folder_contents) {
+        stub_request_and_call_block(
+          :get,
+          "#{base_url}/folders/#{folder_id}/contents",
+          stub_response: {
+            body: response_body.to_json,
+            status: 200
+          }
+        ) do
+          # Call the method under test
+          client.folder_contents(folder_id)
+        end
+      }
+
+      it 'returns download information for an asset' do
+        expect(call_to_folder_contents).to eq response_body['items']
       end
     end
   end

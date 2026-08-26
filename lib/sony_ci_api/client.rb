@@ -15,6 +15,15 @@ module SonyCiApi
   class Client
     BASE_URL = "https://api.cimediacloud.com"
     BASE_UPLOAD_URL = "https://io.cimediacloud.com"
+    
+    # Some API endpoints require recursion, like fetching nested folder contents.
+    # MAX_RECURSION sets the max recursion depth to avoid accidental API abuse.
+    MAX_RECURSION = 5
+
+    # API endpoints that returns a list from the 'items' property tend to also have pagination params 'limit' and 'offset'.
+    MAX_ITEMS_PER_PAGE = 100
+    MAX_PAGES = 1000
+    MAX_ITEMS = MAX_ITEMS_PER_PAGE * MAX_PAGES
 
     attr_reader :config,   # stores the config for the connection, including credentials.
                 :response  # stores the most recent response; default nil
@@ -36,8 +45,12 @@ module SonyCiApi
       elsif config.is_a? Hash
         config_hash = config
       else
-        raise InvalidConfigError, "config is expected to be a valid YAML file or " \
-                             "a Hash, but #{config.class} was given. "
+        msg = if config.is_a? String
+          "config file '#{config}' does not exist."
+        else
+          "config is expected to be a valid YAML file or a Hash, but #{config.class} was given. "
+        end
+        raise InvalidConfigError, msg
       end
       @config = config_hash.with_indifferent_access
     rescue Psych::SyntaxError, Psych::DisallowedClass => e
@@ -97,16 +110,60 @@ module SonyCiApi
       end
     end
 
+
+    # Returns the 'items' property of the response fetching multiple pages as necessary.
+    def get_items(path, params: {}, headers: {}, post: false)
+      all_items = []
+      paginate_params(params).map do |paginated_params|
+        method = post ? :post : :get
+        results = send(method, path, params: paginated_params, headers: headers).fetch('items', [])
+        all_items += results
+        # If the results are fewer than the page count that means we asked for more pages than
+        # we actually have, so break early to avoid extraneous API requests.
+        break if results.count < paginated_params[:limit]
+      end
+      all_items
+    end
+
+
+def paginate_params(params={})
+  params = params.with_indifferent_access
+  limit = params.delete(:limit) || MAX_ITEMS_PER_PAGE
+  offset = params.delete(:offset) || 0
+  pages = (((limit - 1) / MAX_ITEMS_PER_PAGE) + 1)
+
+  pages.times.map do |page|
+    this_page_size = [limit - (page * MAX_ITEMS_PER_PAGE), MAX_ITEMS_PER_PAGE].min
+    this_offest = offset + (page * MAX_ITEMS_PER_PAGE)
+    params.merge(limit: this_page_size, offset: this_offest).symbolize_keys
+  end
+end
+
     def workspaces(**params)
-      get('/workspaces', params: params)['items']
+      get_items('/workspaces', params: params)
     end
 
     def workspace_search(workspace_id = self.workspace_id, **params)
-      get("/workspaces/#{workspace_id}/search", params: params)['items']
+      get_items("/workspaces/#{workspace_id}/search", params: params)
+    end
+
+    def faceted_search(**params)
+      # Set workspaceIds to the current workspace as a default.
+      params['workspaceIds'] ||= [workspace_id]
+      get_items('/faceted-search', params: params, post: true)
+    end
+
+    # Returns an item whose name matches the `name` parameter.
+    def find_by_name(name, **params)
+      raise ArgumentError, "Expected first argument to be a string, but got #{name.class}" unless name.is_a? String
+      params.merge!(query: name, limit: 10)
+      items = faceted_search(**params).select { |item| item['name'] == name }
+      raise "#{items.count} items found with name '#{name}'" if items.count > 1
+      items.first
     end
 
     def webhooks(**params)
-      get("/networks/#{workspace['network']['id']}/webhooks", params: params)['items']
+      get_items("/networks/#{workspace['network']['id']}/webhooks", params: params)
     end
 
     def workspace_id=(wid)
@@ -148,6 +205,10 @@ module SonyCiApi
       get "/assets/#{asset_id}/download"
     end
 
+    def move_assets(asset_ids: [], folder_id:)
+      post "/assets/move", params: { assetIds: asset_ids, folderId: folder_id }
+    end
+
     def asset_stream_url(asset_id, type: "hls")
       type = type.downcase
       raise ArgumentError, "Invalid value for parameter type. Expected one of hls, video-3g, or video-sd, but '#{type}' was given" unless %w[hls video-3g video-sd].include?(type)
@@ -159,7 +220,29 @@ module SonyCiApi
     end
 
     def workspace_contents(workspace_id = self.workspace_id, **params)
-      get("/workspaces/#{workspace_id}/contents", params: params)['items']
+      get_items("/workspaces/#{workspace_id}/contents", params: params.merge(limit: MAX_ITEMS))
+    end
+
+    def folder(folder_id)
+      get "/folders/#{folder_id}"
+    end
+
+    def folder_contents(folder_id, depth: MAX_RECURSION, current_depth: 0, **params)
+      raise MaxRecursionError, "MAX_RECURSIION level #{MAX_RECURSION} exceeded" if current_depth >= MAX_RECURSION
+      contents = get_items("/folders/#{folder_id}/contents", params: params.merge(limit: MAX_ITEMS))
+
+      if current_depth < depth
+        contents.each do |item|
+          if item['kind'].downcase == 'folder'
+            item['contents'] = folder_contents(
+              item['id'],
+              depth: depth,
+              current_depth: (current_depth + 1),
+              **params
+            )
+          end
+        end
+      end
     end
 
     private
